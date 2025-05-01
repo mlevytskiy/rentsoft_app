@@ -1,6 +1,6 @@
 import 'package:get_it/get_it.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
-import '../../features/auth/repositories/auth_repository.dart';
+import '../../features/auth/repositories/mock_auth_repository.dart';
 import '../api/api_client.dart';
 
 final getIt = GetIt.instance;
@@ -10,8 +10,8 @@ void setupDependencies() {
   getIt.registerLazySingleton<ApiClient>(() => ApiClient());
   
   // Repositories
-  getIt.registerLazySingleton<AuthRepository>(() => AuthRepository(getIt<ApiClient>()));
+  getIt.registerLazySingleton<MockAuthRepository>(() => MockAuthRepository());
   
   // BLoCs
-  getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<AuthRepository>()));
+  getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<MockAuthRepository>()));
 }

@@ -1,12 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/services/error_handler.dart';
-import '../repositories/auth_repository.dart';
+import '../repositories/mock_auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
-import '../models/user_model.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository _authRepository;
+  final MockAuthRepository _authRepository;
 
   AuthBloc(this._authRepository) : super(AuthInitial()) {
     on<AuthCheckStatusEvent>(_onCheckStatus);
@@ -23,16 +21,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final isLoggedIn = await _authRepository.isLoggedIn();
       if (isLoggedIn) {
-        // In a real app, you might want to fetch the user profile here
-        // For simplicity, we'll just emit authenticated state with a placeholder user
-        final profile = ProfileModel(name: 'User', surname: 'Logged In');
-        final user = UserModel(email: 'user@example.com', profile: profile);
-        emit(AuthAuthenticated(user));
+        // Get current user data from storage
+        final user = await _authRepository.getCurrentUser();
+        if (user != null) {
+          emit(AuthAuthenticated(user));
+        } else {
+          emit(AuthUnauthenticated());
+        }
       } else {
         emit(AuthUnauthenticated());
       }
-    } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }
@@ -49,8 +47,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.password,
       );
       emit(AuthAuthenticated(user));
-    } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }
@@ -69,8 +65,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.surname,
       );
       emit(AuthAuthenticated(user));
-    } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }
@@ -84,8 +78,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await _authRepository.logout();
       emit(AuthUnauthenticated());
-    } on ApiException catch (e) {
-      emit(AuthFailure(e.message));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }

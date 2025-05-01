@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../features/auth/bloc/auth_bloc.dart';
-import '../../../features/auth/bloc/auth_event.dart';
 import '../../../features/car/screens/car_search_screen.dart';
 import '../../../features/car/screens/my_cars_screen.dart';
 import '../../../features/user/screens/account_screen.dart';
@@ -24,41 +21,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('RentSoft'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutEvent());
-            },
-          ),
-        ],
-      ),
-      body: _tabs[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_car),
-            label: 'Мої авто',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Пошук',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Акаунт',
-          ),
-        ],
+    return WillPopScope(
+      onWillPop: _handleBackNavigation,
+      child: Scaffold(
+        // Removed AppBar to save vertical space
+        body: Navigator(
+          onGenerateRoute: (settings) {
+            if (settings.name == '/') {
+              return MaterialPageRoute(
+                builder: (context) => _tabs[_currentIndex],
+                settings: settings,
+              );
+            }
+            // Add other routes if needed
+            return null;
+          },
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.directions_car),
+              label: 'Мої авто',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              label: 'Пошук',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Акаунт',
+            ),
+          ],
+        ),
       ),
     );
+  }
+  
+  Future<bool> _handleBackNavigation() async {
+    // Add your back navigation logic here if needed
+    return true; // Allow back navigation
   }
 }

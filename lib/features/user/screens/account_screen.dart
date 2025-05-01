@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
-import '../services/user_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../features/auth/bloc/auth_bloc.dart';
+import '../../../features/auth/bloc/auth_event.dart';
+import '../../../features/auth/repositories/mock_auth_repository.dart';
 import '../widgets/verification_status.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -11,25 +14,46 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final _userService = UserService();
-  late User _user;
+  final _authRepository = getIt<MockAuthRepository>();
   bool _isEditing = false;
   
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   
+  String _firstName = '';
+  String _lastName = '';
+  String _email = '';
+  bool _isVerified = false;
+  
   @override
   void initState() {
     super.initState();
-    _user = _userService.getMockUser();
+    _loadUserData();
     _initControllers();
   }
   
+  Future<void> _loadUserData() async {
+    final user = await _authRepository.getCurrentUser();
+    if (user != null) {
+      setState(() {
+        _firstName = user.profile.name;
+        _lastName = user.profile.surname;
+        _email = user.email;
+        _isVerified = user.isActive ?? false;
+        
+        // Update controllers if already initialized
+        _firstNameController.text = _firstName;
+        _lastNameController.text = _lastName;
+        _emailController.text = _email;
+      });
+    }
+  }
+  
   void _initControllers() {
-    _firstNameController = TextEditingController(text: _user.firstName);
-    _lastNameController = TextEditingController(text: _user.lastName);
-    _emailController = TextEditingController(text: _user.email);
+    _firstNameController = TextEditingController(text: _firstName);
+    _lastNameController = TextEditingController(text: _lastName);
+    _emailController = TextEditingController(text: _email);
   }
   
   @override
@@ -87,7 +111,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 // In view mode, just show text
                 Center(
                   child: Text(
-                    '${_user.firstName} ${_user.lastName}',
+                    '$_firstName $_lastName',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -97,7 +121,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    _user.email,
+                    _email,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey.shade700,
@@ -106,16 +130,26 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              VerificationStatus(isVerified: _user.isVerified),
+              VerificationStatus(isVerified: _isVerified),
               const SizedBox(height: 24),
               _buildEditButton(),
+              const SizedBox(height: 16),
+              _buildLogoutButton(
+                label: 'Вийти з облікового запису',
+                color: const Color(0xFF3F5185), // Navy blue color
+              ),
+              const SizedBox(height: 16),
+              _buildLogoutButton(
+                label: 'Вийти з облікового запису і стерти всі дані',
+                color: Colors.red.shade700, // Red color
+              ),
               if (_isEditing) ...[
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
                     setState(() {
                       _isEditing = false;
-                      _initControllers(); // Reset controllers to original values
+                      _loadUserData(); // Reset to original values
                     });
                   },
                   child: const Text('Скасувати'),
@@ -133,29 +167,27 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Stack(
         children: [
           CircleAvatar(
-            radius: 60,
-            backgroundImage: NetworkImage(_user.avatarUrl),
-            onBackgroundImageError: (_, __) {
-              // Handle image loading error
-            },
+            radius: 50,
+            backgroundColor: Colors.grey.shade300,
+            backgroundImage: const NetworkImage('https://via.placeholder.com/100'),
           ),
-          if (_isEditing)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
-                  size: 20,
-                ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3F5185),
+                border: Border.all(color: Colors.white, width: 2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+                size: 20,
               ),
             ),
+          ),
         ],
       ),
     );
@@ -184,6 +216,56 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         child: Text(
           _isEditing ? 'Зберегти зміни' : 'Змінити дані',
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildLogoutButton({
+    required String label,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          // Show confirmation dialog before logout
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Вихід з облікового запису'),
+              content: const Text('Ви впевнені, що хочете вийти?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Скасувати'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white, // Setting text color to white
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    context.read<AuthBloc>().add(AuthLogoutEvent());
+                  },
+                  child: const Text('Вийти'),
+                ),
+              ],
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          label,
           style: const TextStyle(fontSize: 16),
         ),
       ),
@@ -250,39 +332,18 @@ class _AccountScreenState extends State<AccountScreen> {
   }
   
   void _saveChanges() async {
-    final updatedUser = _user.copyWith(
-      firstName: _firstNameController.text,
-      lastName: _lastNameController.text,
-      email: _emailController.text,
+    setState(() {
+      _firstName = _firstNameController.text;
+      _lastName = _lastNameController.text;
+      _email = _emailController.text;
+      _isEditing = false;
+    });
+    
+    // Note: In a real app, we would update these values in the repository
+    // For now, we're just updating the UI
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Дані успішно оновлено')),
     );
-    
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-    
-    // Simulate API call
-    final success = await _userService.updateUserInfo(updatedUser);
-    
-    // Hide loading indicator
-    Navigator.pop(context);
-    
-    if (success) {
-      setState(() {
-        _user = updatedUser;
-        _isEditing = false;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Дані успішно оновлено')),
-      );
-    } else {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Помилка під час оновлення даних')),
-      );
-    }
   }
 }

@@ -173,11 +173,18 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: FilterChip(
+        labelPadding: const EdgeInsets.only(right: 2.0),
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label),
-            const Icon(Icons.arrow_drop_down, size: 18),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, size: 16),
           ],
         ),
         onSelected: (bool selected) {
@@ -512,13 +519,36 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
+        onTap: () async {
+          final result = await Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
+              fullscreenDialog: true,
               builder: (context) => CarDetailScreen(car: car),
             ),
           );
+          
+          // Check if we need to switch to My Cars tab
+          if (result != null && result is Map && result['switchToMyCars'] == true) {
+            // Notify parent (HomeScreen) to switch to My Cars tab
+            if (context.mounted) {
+              // Find the nearest ScaffoldMessenger and post a notification
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Перехід до ваших орендованих авто...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              
+              // Navigate back to home screen
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop({'switchToMyCars': true});
+              }
+            }
+          }
+          
+          // Refresh car list after returning from details
+          _loadCars();
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

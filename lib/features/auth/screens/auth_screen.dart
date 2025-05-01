@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../services/mock_data_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -59,12 +60,30 @@ class _AuthScreenState extends State<AuthScreen> {
       );
     }
   }
+  
+  void _fillWithMockData() {
+    // Get random mock user data
+    final mockUser = MockDataService.getRandomUser();
+    
+    // Fill all form fields regardless of mode
+    _emailController.text = mockUser.email;
+    _passwordController.text = mockUser.password;
+    _nameController.text = mockUser.firstName;
+    _surnameController.text = mockUser.lastName;
+    
+    // Show snackbar with success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Форму заповнено випадковими даними'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isLogin ? 'Login' : 'Register'),
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -88,14 +107,45 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 20),
-                    // Logo or App name
-                    const Text(
-                      'RentSoft',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    // Logo or App name with Fill button next to it
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Column(
+                          children: [
+                            const Text(
+                              'RentSoft',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              'Тут ви можете орендувати машину',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 22,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: _fillWithMockData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(16),
+                          ),
+                          child: const Icon(
+                            Icons.auto_fix_high,
+                            size: 24,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 40),
                     
@@ -156,13 +206,13 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
-                          labelText: 'First Name',
+                          labelText: "Ім'я",
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.person),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your first name';
+                            return "Будь ласка, введіть ім'я";
                           }
                           return null;
                         },
@@ -172,13 +222,13 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextFormField(
                         controller: _surnameController,
                         decoration: const InputDecoration(
-                          labelText: 'Last Name',
+                          labelText: 'Прізвище',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.person),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your last name';
+                            return 'Будь ласка, введіть прізвище';
                           }
                           return null;
                         },
@@ -190,22 +240,27 @@ class _AuthScreenState extends State<AuthScreen> {
                     ElevatedButton(
                       onPressed: _submitForm,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3F5185), // Navy blue color
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: Text(
-                        _isLogin ? 'LOGIN' : 'REGISTER',
+                        _isLogin ? 'УВІЙТИ' : 'ЗАРЕЄСТРУВАТИСЯ',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     
                     // Toggle Button
                     TextButton(
                       onPressed: _toggleAuthMode,
                       child: Text(
                         _isLogin
-                            ? 'Don\'t have an account? Register'
-                            : 'Already have an account? Login',
+                            ? 'Немає акаунту? Зареєструватися'
+                            : 'Вже маєте акаунт? Увійти',
                       ),
                     ),
                   ],

@@ -7,10 +7,21 @@ import 'features/auth/bloc/auth_state.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/home_screen.dart';
 
+// Global navigator key for accessing navigation context from anywhere
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Global variable to store the current tab index
+int currentTabIndex = 1; // Default to search tab (index 1)
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   setupDependencies();
-  runApp(const MyApp());
+  runApp(
+    BlocProvider(
+      create: (_) => getIt<AuthBloc>()..add(AuthCheckStatusEvent()),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -18,31 +29,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<AuthBloc>()..add(AuthCheckStatusEvent()),
-      child: MaterialApp(
-        title: 'RentSoft',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
-        home: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is AuthLoading || state is AuthInitial) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+    return MaterialApp(
+      title: 'RentSoft',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),
+      navigatorKey: navigatorKey,
+      home: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          if (state is AuthLoading || state is AuthInitial) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
 
-            if (state is AuthAuthenticated) {
-              return const HomeScreen();
-            }
+          if (state is AuthAuthenticated) {
+            return const HomeScreen();
+          }
 
-            return const AuthScreen();
-          },
-        ),
+          return const AuthScreen();
+        },
       ),
     );
   }
