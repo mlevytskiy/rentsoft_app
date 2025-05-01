@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/car_model.dart';
 import '../services/car_service.dart'; // Import CarService
+import '../../booking/repositories/booking_repository.dart';
 
 class CarDetailScreen extends StatefulWidget {
   final Car car;
@@ -23,7 +27,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   bool _showCarParkContacts = false; // Flag to toggle contact info visibility
   bool _isBooked = false; // Booking status
   bool _isLoading = false; // Loading state
-
+  String? _userId;
+  
   // Car park contact information
   final Map<String, Map<String, String>> _carParkContacts = {
     'Автопарк 1': {
@@ -40,17 +45,58 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     },
   };
 
+  // Booking repository
+  final BookingRepository _bookingRepository = BookingRepository();
+  String? _currentBookingId;
+
   @override
   void initState() {
     super.initState();
-    // Set default dates (e.g., today and a week from today)
-    final now = DateTime.now();
-    startDate = DateTime(now.year, now.month, now.day, 10, 30);
-    endDate = DateTime(now.year, now.month, now.day + 7, 9, 0);
     
-    // Check if car is already booked
-    final carService = CarService();
-    _isBooked = carService.isCarBooked(widget.car.id);
+    // Initialize default dates
+    startDate = DateTime.now();
+    endDate = DateTime.now().add(const Duration(days: 7));
+    
+    _initUserId().then((_) {
+      _checkIfCarIsBooked();
+    });
+  }
+  
+  Future<void> _initUserId() async {
+    // In a real app, this would come from authentication
+    // For now, we'll generate and store a user ID in shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('user_id');
+    
+    if (userId == null) {
+      userId = const Uuid().v4();
+      await prefs.setString('user_id', userId);
+    }
+    
+    setState(() {
+      _userId = userId;
+    });
+  }
+  
+  Future<void> _checkIfCarIsBooked() async {
+    if (_userId == null) return;
+    
+    // Check if this car is booked by the current user
+    final bookings = await _bookingRepository.getUserActiveBookingsStream(_userId!).first;
+    final carBookings = bookings.where((booking) => booking.carId == widget.car.id).toList();
+    
+    if (carBookings.isNotEmpty) {
+      final booking = carBookings.first;
+      final carService = CarService();
+      carService.bookCar(widget.car.id);
+      
+      setState(() {
+        _isBooked = true;
+        _currentBookingId = booking.id;
+        startDate = booking.startDate;
+        endDate = booking.endDate;
+      });
+    }
   }
 
   @override
@@ -342,49 +388,113 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Widget _buildRentalPeriodSection() {
+    final dateFormat = DateFormat('dd.MM.yyyy');
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Період оренди',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.arrow_outward, size: 16, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  _formatDate(startDate),
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
+            const Text(
+              'Період оренди',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             TextButton(
-              onPressed: _showDateTimePicker,
-              child: const Text('Змінити'),
+              onPressed: () => _selectDateRange(context),
+              child: const Text(
+                'Змінити',
+                style: TextStyle(
+                  color: Color(0xFF3F5185),
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            const Icon(Icons.arrow_downward, size: 16, color: Colors.blue),
-            const SizedBox(width: 8),
-            Text(
-              _formatDate(endDate),
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Початок',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      startDate != null ? dateFormat.format(startDate!) : 'Не вибрано',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                height: 24,
+                width: 1,
+                color: Colors.grey.shade300,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Кінець',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      endDate != null ? dateFormat.format(endDate!) : 'Не вибрано',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  Future<void> _selectDateRange(BuildContext context) async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateRange: startDate != null && endDate != null
+          ? DateTimeRange(start: startDate!, end: endDate!)
+          : null,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3F5185),
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null) {
+      setState(() {
+        startDate = picked.start;
+        endDate = picked.end;
+      });
+    }
   }
 
   Widget _buildPriceAndRentButton() {
@@ -443,75 +553,115 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     );
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    final day = date.day.toString();
-    final months = [
-      'Січня', 'Лютого', 'Березня', 'Квітня', 'Травня', 'Червня',
-      'Липня', 'Серпня', 'Вересня', 'Жовтня', 'Листопада', 'Грудня'
-    ];
-    final month = months[date.month - 1];
-    final time = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    return '$day $month, $time';
-  }
-
-  void _showDateTimePicker() {
-    // Show date picker, followed by time picker
-    // This is a placeholder for actual implementation
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Період оренди'),
-        content: const Text('Тут буде відображено вибір дат і часу'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _bookCar() {
+  void _bookCar() async {
+    if (startDate == null || endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Будь ласка, виберіть період оренди')),
+      );
+      return;
+    }
+    
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Помилка: не знайдено ID користувача')),
+      );
+      return;
+    }
+    
     final carService = CarService();
     
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate network request
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // Check if car is available for the selected date range
+      final isAvailable = await _bookingRepository.isCarAvailableForBooking(
+        widget.car.id,
+        startDate!,
+        endDate!,
+      );
+      
+      if (!isAvailable) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('На жаль, цей автомобіль уже заброньований на вибрані дати'),
+          ),
+        );
+        return;
+      }
+      
+      // Create booking in Firestore
+      final bookingId = await _bookingRepository.createBooking(
+        carId: widget.car.id,
+        userId: _userId!,
+        startDate: startDate!,
+        endDate: endDate!,
+      );
+      
+      // Update local state
       carService.bookCar(widget.car.id);
       
       setState(() {
         _isLoading = false;
         _isBooked = true;
+        _currentBookingId = bookingId;
       });
       
       // Show confirmation dialog
       _showBookingConfirmationDialog();
-    });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Помилка: ${e.toString()}')),
+      );
+    }
   }
-  
-  void _cancelBooking() {
+
+  void _cancelBooking() async {
+    if (_currentBookingId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Неможливо скасувати бронювання')),
+      );
+      return;
+    }
+    
     final carService = CarService();
     
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate network request
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // Cancel booking in Firestore
+      await _bookingRepository.cancelBooking(_currentBookingId!);
+      
+      // Update local state
       carService.unbookCar(widget.car.id);
       
       setState(() {
         _isLoading = false;
         _isBooked = false;
+        _currentBookingId = null;
       });
-    });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Помилка: ${e.toString()}')),
+      );
+    }
   }
-  
+
   void _showBookingConfirmationDialog() {
     showDialog(
       context: context,
