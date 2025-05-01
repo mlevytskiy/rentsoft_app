@@ -138,11 +138,6 @@ class _AccountScreenState extends State<AccountScreen> {
                 label: 'Вийти з облікового запису',
                 color: const Color(0xFF3F5185), // Navy blue color
               ),
-              const SizedBox(height: 16),
-              _buildLogoutButton(
-                label: 'Вийти з облікового запису і стерти всі дані',
-                color: Colors.red.shade700, // Red color
-              ),
               if (_isEditing) ...[
                 const SizedBox(height: 16),
                 TextButton(
