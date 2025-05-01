@@ -63,10 +63,10 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: InkWell(
         onTap: () async {
-          await Navigator.push(
-            context,
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => CarDetailScreen(car: car),
+              fullscreenDialog: true,
             ),
           );
           // Refresh list when returning from detail screen
