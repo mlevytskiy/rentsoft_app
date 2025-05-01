@@ -1,0 +1,68 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ApiConfigService {
+  static const String _baseUrlKey = 'base_url';
+  static const String _urlOptionKey = 'url_option'; // Ключ для опції URL
+  static const String _withoutInternetValue = 'no-internet';
+  static const String _localhostUrl = 'http://localhost:8888/';
+  static const String _publicUrl = 'http://rentsoft.us-east-1.elasticbeanstalk.com/api/';
+
+  // Сервіс-сінглтон
+  static final ApiConfigService _instance = ApiConfigService._internal();
+  factory ApiConfigService() => _instance;
+  ApiConfigService._internal();
+
+  // Кешована копія базового URL
+  String? _cachedBaseUrl;
+
+  // Отримати поточний базовий URL
+  Future<String> getBaseUrl() async {
+    if (_cachedBaseUrl != null) {
+      return _cachedBaseUrl!;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final baseUrl = prefs.getString(_baseUrlKey);
+
+    // Якщо URL ще не було збережено, використовувати публічний URL за замовчуванням
+    _cachedBaseUrl = baseUrl ?? _publicUrl;
+    return _cachedBaseUrl!;
+  }
+
+  // Зберегти новий базовий URL
+  Future<void> setBaseUrl(String baseUrl) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_baseUrlKey, baseUrl);
+    _cachedBaseUrl = baseUrl;
+  }
+
+  // Зберегти вибрану опцію URL (для відновлення вибору користувача)
+  Future<void> saveUrlOption(String optionName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_urlOptionKey, optionName);
+  }
+
+  // Отримати збережену опцію URL
+  Future<String?> getSavedUrlOption() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_urlOptionKey);
+  }
+
+  // Перевірити, чи поточний режим - без інтернету (мок дані)
+  Future<bool> isOfflineMode() async {
+    final baseUrl = await getBaseUrl();
+    return baseUrl == _withoutInternetValue;
+  }
+
+  // Перевірити, чи використовується публічний URL
+  Future<bool> isUsingPublicUrl() async {
+    final baseUrl = await getBaseUrl();
+    return baseUrl == _publicUrl;
+  }
+
+  // Отримати локальний URL
+  String getLocalhostUrl() => _localhostUrl;
+
+  // Отримати публічний URL
+  String getPublicUrl() => _publicUrl;
+}

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/api/api_client.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/services/api_config_service.dart';
 import '../../secret/screens/secret_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -20,6 +23,8 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
+  final _apiConfigService = ApiConfigService();
+  final _apiClient = getIt<ApiClient>();
 
   bool _isLogin = true;
   bool _isPasswordVisible = false;
@@ -29,12 +34,28 @@ class _AuthScreenState extends State<AuthScreen> {
   final List<DateTime> _tapTimestamps = [];
 
   @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _nameController.dispose();
-    _surnameController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _refreshConfiguration();
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshConfiguration();
+  }
+  
+  // Оновлює конфігурацію API при показі екрану
+  Future<void> _refreshConfiguration() async {
+    await _apiClient.refreshBaseUrl();
+    // Перевіряємо режим після оновлення URL
+    final isOfflineMode = await _apiConfigService.isOfflineMode();
+    print('[AuthScreen] 🌐 Режим роботи: ${isOfflineMode ? 'Без інтернету' : 'З інтернетом'}');
+    
+    // Оновлюємо AuthBloc тільки якщо контекст доступний
+    if (mounted && context.mounted) {
+      context.read<AuthBloc>().add(AuthCheckStatusEvent());
+    }
   }
 
   void _toggleAuthMode() {
@@ -104,6 +125,15 @@ class _AuthScreenState extends State<AuthScreen> {
         _tapTimestamps.clear();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    _surnameController.dispose();
+    super.dispose();
   }
 
   @override

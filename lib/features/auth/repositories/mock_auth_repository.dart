@@ -1,14 +1,16 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
+import 'i_auth_repository.dart';
 
-class MockAuthRepository {
+class MockAuthRepository implements IAuthRepository {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   
   // Mock token for authentication
   final String _mockToken = 'mock_token_12345';
   
   // Login user
+  @override
   Future<UserModel> login(String email, String password) async {
     // Add a 2-second delay to simulate network latency
     await Future.delayed(const Duration(seconds: 2));
@@ -46,6 +48,7 @@ class MockAuthRepository {
   }
   
   // Register new user
+  @override
   Future<UserModel> register(String email, String password, String name, String surname) async {
     // Add a 2-second delay to simulate network latency
     await Future.delayed(const Duration(seconds: 2));
@@ -70,6 +73,7 @@ class MockAuthRepository {
   }
   
   // Logout user
+  @override
   Future<void> logout() async {
     // Add a small delay for logout as well
     await Future.delayed(const Duration(milliseconds: 500));
@@ -77,12 +81,14 @@ class MockAuthRepository {
   }
   
   // Check if user is logged in
+  @override
   Future<bool> isLoggedIn() async {
     final token = await _secureStorage.read(key: 'access_token');
     return token != null;
   }
   
   // Get authenticated user data
+  @override
   Future<UserModel?> getCurrentUser() async {
     final userJson = await _secureStorage.read(key: 'user_data');
     if (userJson != null) {
@@ -92,6 +98,7 @@ class MockAuthRepository {
   }
   
   // Get token
+  @override
   Future<String?> getToken() async {
     return await _secureStorage.read(key: 'access_token');
   }

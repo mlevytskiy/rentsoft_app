@@ -1,15 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../services/api_config_service.dart';
 import '../services/error_handler.dart';
 
 class ApiClient {
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  final String baseUrl = 'http://localhost:8888';
+  final ApiConfigService _apiConfigService = ApiConfigService();
+  String? _baseUrl;
 
   ApiClient() {
-    _dio.options.baseUrl = baseUrl;
+    _initializeClient();
+  }
+
+  Future<void> _initializeClient() async {
+    _baseUrl = await _apiConfigService.getBaseUrl();
+    
+    _dio.options.baseUrl = _baseUrl!;
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     _dio.options.headers = {
@@ -31,6 +39,15 @@ class ApiClient {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          
+          // Перевіряємо, чи не змінився базовий URL
+          final currentBaseUrl = await _apiConfigService.getBaseUrl();
+          if (_baseUrl != currentBaseUrl && currentBaseUrl != "no-internet") {
+            _baseUrl = currentBaseUrl;
+            _dio.options.baseUrl = _baseUrl!;
+            print('[API] 🔄 URL змінено на: $_baseUrl');
+          }
+          
           print('[API] 🚀 REQUEST: ${options.method} ${options.path}');
           return handler.next(options);
         },
@@ -90,9 +107,21 @@ class ApiClient {
     );
   }
 
+  // Метод для негайного оновлення базового URL
+  Future<void> refreshBaseUrl() async {
+    final currentBaseUrl = await _apiConfigService.getBaseUrl();
+    if (_baseUrl != currentBaseUrl && currentBaseUrl != "no-internet") {
+      _baseUrl = currentBaseUrl;
+      _dio.options.baseUrl = _baseUrl!;
+      print('[API] 🔄 URL примусово оновлено на: $_baseUrl');
+    }
+  }
+
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+    await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
     try {
-      return await _dio.get(path, queryParameters: queryParameters);
+      final response = await _dio.get(path, queryParameters: queryParameters);
+      return response;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
@@ -101,8 +130,10 @@ class ApiClient {
   }
 
   Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+    await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
     try {
-      return await _dio.post(path, data: data, queryParameters: queryParameters);
+      final response = await _dio.post(path, data: data, queryParameters: queryParameters);
+      return response;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
@@ -111,8 +142,10 @@ class ApiClient {
   }
 
   Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+    await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
     try {
-      return await _dio.put(path, data: data, queryParameters: queryParameters);
+      final response = await _dio.put(path, data: data, queryParameters: queryParameters);
+      return response;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {
@@ -121,8 +154,10 @@ class ApiClient {
   }
 
   Future<Response> delete(String path, {Map<String, dynamic>? queryParameters}) async {
+    await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
     try {
-      return await _dio.delete(path, queryParameters: queryParameters);
+      final response = await _dio.delete(path, queryParameters: queryParameters);
+      return response;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     } catch (e) {

@@ -1,52 +1,197 @@
 import 'package:flutter/material.dart';
 
-class SecretScreen extends StatelessWidget {
+import '../../../core/services/api_config_service.dart';
+
+// Enum для опцій URL
+enum UrlOption {
+  localhost,
+  ourPublic,
+  withoutInternet,
+  custom,
+}
+
+class SecretScreen extends StatefulWidget {
   const SecretScreen({super.key});
+
+  @override
+  State<SecretScreen> createState() => _SecretScreenState();
+}
+
+class _SecretScreenState extends State<SecretScreen> {
+  final ApiConfigService _apiConfigService = ApiConfigService();
+  final TextEditingController _baseUrlController = TextEditingController();
+  UrlOption _selectedOption = UrlOption.ourPublic; // За замовчуванням публічний URL
+  bool _isLoading = false;
+
+  // Мапа для зберігання URL для кожної опції
+  final Map<UrlOption, String> _urlOptions = {
+    UrlOption.localhost: 'http://localhost:8888/',
+    UrlOption.ourPublic: 'http://rentsoft.us-east-1.elasticbeanstalk.com/',
+    UrlOption.withoutInternet: 'no-internet',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedUrl();
+  }
+
+  @override
+  void dispose() {
+    _baseUrlController.dispose();
+    super.dispose();
+  }
+
+  // Завантажити збережений URL при ініціалізації
+  Future<void> _loadSavedUrl() async {
+    final baseUrl = await _apiConfigService.getBaseUrl();
+    
+    // Спочатку спробуємо відновити збережену опцію
+    final savedOption = await _apiConfigService.getSavedUrlOption();
+    
+    setState(() {
+      _baseUrlController.text = baseUrl;
+
+      if (savedOption != null) {
+        // Якщо є збережена опція, використовуємо її
+        _selectedOption = UrlOption.values.firstWhere(
+          (option) => option.toString() == savedOption,
+          orElse: () => UrlOption.ourPublic,
+        );
+      } else if (_urlOptions.containsValue(baseUrl)) {
+        // Інакше визначаємо опцію на основі URL
+        _selectedOption = _urlOptions.entries.firstWhere((entry) => entry.value == baseUrl).key;
+      } else {
+        _selectedOption = UrlOption.custom;
+      }
+    });
+  }
+
+  // Зберегти URL
+  Future<void> _saveUrl() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _apiConfigService.setBaseUrl(_baseUrlController.text.trim());
+      // Зберігаємо вибрану опцію URL
+      await _apiConfigService.saveUrlOption(_selectedOption.toString());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Base URL збережено!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Помилка: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Побудова Widget для опції URL
+  Widget _buildOptionTile(UrlOption option, String title) {
+    return RadioListTile<UrlOption>(
+      title: Text(title),
+      value: option,
+      groupValue: _selectedOption,
+      onChanged: (value) {
+        if (value == null) return;
+        
+        setState(() {
+          _selectedOption = value;
+          
+          // Якщо вибрано не Custom, оновити поле введення з відповідним URL
+          if (value != UrlOption.custom) {
+            _baseUrlController.text = _urlOptions[value]!;
+          }
+        });
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Secret Screen'),
-        backgroundColor: Colors.amber.shade700,
+        title: const Text('Секретний екран'),
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.lock_open,
-              size: 80,
-              color: Colors.amber,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Секретний екран',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Ви знайшли секретний вміст!',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  '⚠️ Увага! Цей екран містить налаштування розробника. '
+                  'Змінюйте їх, тільки якщо ви знаєте, що робите.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              child: const Text('Повернутися назад'),
+            ),
+            const SizedBox(height: 24),
+
+            // URL input field
+            TextField(
+              controller: _baseUrlController,
+              decoration: const InputDecoration(
+                labelText: 'Base URL',
+                hintText: 'Введіть URL API',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                // Якщо користувач змінив текст вручну, змінюємо опцію на "Custom"
+                if (_urlOptions.values.contains(value)) {
+                  setState(() {
+                    _selectedOption = _urlOptions.entries.firstWhere((entry) => entry.value == value).key;
+                  });
+                } else {
+                  setState(() {
+                    _selectedOption = UrlOption.custom;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Опції з радіо-кнопками
+            const Text(
+              'Виберіть попередньо налаштований URL:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            _buildOptionTile(UrlOption.localhost, 'Localhost'),
+            _buildOptionTile(UrlOption.ourPublic, 'Our Public URL'),
+            _buildOptionTile(UrlOption.withoutInternet, 'Without Internet'),
+            _buildOptionTile(UrlOption.custom, 'Custom'),
+
+            const Spacer(),
+
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveUrl,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Зберегти'),
+              ),
             ),
           ],
         ),

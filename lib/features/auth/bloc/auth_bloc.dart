@@ -1,16 +1,33 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/services/api_config_service.dart';
+import '../repositories/i_auth_repository.dart';
 import '../repositories/mock_auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final MockAuthRepository _authRepository;
-
-  AuthBloc(this._authRepository) : super(AuthInitial()) {
+  final IAuthRepository _initialAuthRepository;
+  final ApiConfigService _apiConfigService = getIt<ApiConfigService>();
+  
+  AuthBloc(this._initialAuthRepository) : super(AuthInitial()) {
     on<AuthCheckStatusEvent>(_onCheckStatus);
     on<AuthLoginEvent>(_onLogin);
     on<AuthRegisterEvent>(_onRegister);
     on<AuthLogoutEvent>(_onLogout);
+  }
+
+  // Отримуємо актуальний репозиторій на основі поточних налаштувань
+  Future<IAuthRepository> _getRepository() async {
+    final isOfflineMode = await _apiConfigService.isOfflineMode();
+    
+    if (isOfflineMode) {
+      // Якщо офлайн режим, використовуємо MockAuthRepository
+      return getIt<MockAuthRepository>();
+    }
+    
+    // В іншому випадку використовуємо початковий репозиторій
+    return _initialAuthRepository;
   }
 
   Future<void> _onCheckStatus(
@@ -19,10 +36,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final isLoggedIn = await _authRepository.isLoggedIn();
+      final repository = await _getRepository();
+      final isLoggedIn = await repository.isLoggedIn();
       if (isLoggedIn) {
         // Get current user data from storage
-        final user = await _authRepository.getCurrentUser();
+        final user = await repository.getCurrentUser();
         if (user != null) {
           emit(AuthAuthenticated(user));
         } else {
@@ -42,7 +60,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final user = await _authRepository.login(
+      final repository = await _getRepository();
+      final user = await repository.login(
         event.email,
         event.password,
       );
@@ -58,7 +77,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final user = await _authRepository.register(
+      final repository = await _getRepository();
+      final user = await repository.register(
         event.email,
         event.password,
         event.name,
@@ -76,7 +96,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      await _authRepository.logout();
+      final repository = await _getRepository();
+      await repository.logout();
       emit(AuthUnauthenticated());
     } catch (e) {
       emit(AuthFailure(e.toString()));
