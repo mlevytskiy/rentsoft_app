@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../secret/screens/secret_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -18,9 +20,13 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
-  
+
   bool _isLogin = true;
   bool _isPasswordVisible = false;
+  bool _showSecretButton = false; // Контролює видимість жовтої кнопки
+
+  // Для відстеження послідовних натискань
+  final List<DateTime> _tapTimestamps = [];
 
   @override
   void dispose() {
@@ -44,33 +50,33 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (_isLogin) {
       context.read<AuthBloc>().add(
-        AuthLoginEvent(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        ),
-      );
+            AuthLoginEvent(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            ),
+          );
     } else {
       context.read<AuthBloc>().add(
-        AuthRegisterEvent(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          surname: _surnameController.text.trim(),
-        ),
-      );
+            AuthRegisterEvent(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              name: _nameController.text.trim(),
+              surname: _surnameController.text.trim(),
+            ),
+          );
     }
   }
-  
+
   void _fillWithMockData() {
     // Get random mock user data
     final mockUser = MockDataService.getRandomUser();
-    
+
     // Fill all form fields regardless of mode
     _emailController.text = mockUser.email;
     _passwordController.text = mockUser.password;
     _nameController.text = mockUser.firstName;
     _surnameController.text = mockUser.lastName;
-    
+
     // Show snackbar with success message
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -80,11 +86,30 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  void _handleTitleTap() {
+    final now = DateTime.now();
+
+    // Додаємо поточний час натискання
+    _tapTimestamps.add(now);
+
+    // Залишаємо тільки натискання за останні 2 секунди
+    _tapTimestamps.removeWhere((timestamp) => now.difference(timestamp).inSeconds > 2);
+
+    // Перевіряємо, чи було 5 натискань протягом останніх 2 секунд
+    if (_tapTimestamps.length >= 5) {
+      setState(() {
+        // Перемикаємо видимість кнопки (якщо видно - ховаємо, якщо схована - показуємо)
+        _showSecretButton = !_showSecretButton;
+        // Очищаємо список натискань після досягнення мети
+        _tapTimestamps.clear();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-      ),
+      appBar: AppBar(),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthFailure) {
@@ -97,7 +122,7 @@ class _AuthScreenState extends State<AuthScreen> {
           if (state is AuthLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           return SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -113,12 +138,15 @@ class _AuthScreenState extends State<AuthScreen> {
                       children: [
                         Column(
                           children: [
-                            const Text(
-                              'RentSoft',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
+                            GestureDetector(
+                              onTap: _handleTitleTap,
+                              child: const Text(
+                                'RentSoft',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             const Text(
@@ -145,10 +173,32 @@ class _AuthScreenState extends State<AuthScreen> {
                             size: 24,
                           ),
                         ),
+                        const SizedBox(width: 16),
+                        _showSecretButton
+                            ? ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const SecretScreen(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber,
+                                  foregroundColor: Colors.white,
+                                  shape: const CircleBorder(),
+                                  padding: const EdgeInsets.all(16),
+                                ),
+                                child: const Icon(
+                                  Icons.vpn_key,
+                                  size: 24,
+                                ),
+                              )
+                            : const SizedBox(),
                       ],
                     ),
                     const SizedBox(height: 40),
-                    
+
                     // Email Field
                     TextFormField(
                       controller: _emailController,
@@ -169,7 +219,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Password Field
                     TextFormField(
                       controller: _passwordController,
@@ -200,7 +250,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Registration fields
                     if (!_isLogin) ...[
                       TextFormField(
@@ -218,7 +268,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      
                       TextFormField(
                         controller: _surnameController,
                         decoration: const InputDecoration(
@@ -235,7 +284,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    
+
                     // Submit Button
                     ElevatedButton(
                       onPressed: _submitForm,
@@ -253,14 +302,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Toggle Button
                     TextButton(
                       onPressed: _toggleAuthMode,
                       child: Text(
-                        _isLogin
-                            ? 'Немає акаунту? Зареєструватися'
-                            : 'Вже маєте акаунт? Увійти',
+                        _isLogin ? 'Немає акаунту? Зареєструватися' : 'Вже маєте акаунт? Увійти',
                       ),
                     ),
                   ],
