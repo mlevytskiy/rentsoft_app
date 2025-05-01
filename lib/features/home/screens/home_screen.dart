@@ -13,10 +13,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 1; // Start with search tab by default
 
-  final List<Widget> _tabs = const [
-    MyCarsScreen(),
-    CarSearchScreen(),
-    AccountScreen(),
+  final List<Widget> _tabs = [
+    // Використовуємо глобальний ключ з файлу my_cars_screen.dart
+    MyCarsScreen(key: myCarScreenKey),
+    const CarSearchScreen(),
+    const AccountScreen(),
   ];
 
   @override
@@ -24,22 +25,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return WillPopScope(
       onWillPop: _handleBackNavigation,
       child: Scaffold(
-        // Removed AppBar to save vertical space
-        body: Navigator(
-          onGenerateRoute: (settings) {
-            if (settings.name == '/') {
-              return MaterialPageRoute(
-                builder: (context) => _tabs[_currentIndex],
-                settings: settings,
-              );
-            }
-            // Add other routes if needed
-            return null;
-          },
+        // Використовуємо IndexedStack замість Navigator для уникнення проблем з вкладеними навігаторами
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _tabs,
         ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
+            // При перемиканні на вкладку "Мої авто" (індекс 0), оновлюємо список автомобілів
+            if (index == 0 && myCarScreenKey.currentState != null) {
+              myCarScreenKey.currentState!.reloadBookedCars();
+            }
+            
             setState(() {
               _currentIndex = index;
             });

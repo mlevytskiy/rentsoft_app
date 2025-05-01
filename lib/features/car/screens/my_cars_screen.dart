@@ -3,16 +3,20 @@ import '../models/car_model.dart';
 import '../services/car_service.dart';
 import 'car_detail_screen.dart';
 
+// Додаємо GlobalKey для зовнішнього доступу до екрану
+final myCarScreenKey = GlobalKey<MyCarsScreenState>();
+
 class MyCarsScreen extends StatefulWidget {
   const MyCarsScreen({super.key});
 
   @override
-  State<MyCarsScreen> createState() => _MyCarsScreenState();
+  State<MyCarsScreen> createState() => MyCarsScreenState();
 }
 
-class _MyCarsScreenState extends State<MyCarsScreen> {
+// Змінюємо видимість класу з приватного на публічний
+class MyCarsScreenState extends State<MyCarsScreen> {
   final _carService = CarService();
-  late List<Car> _bookedCars;
+  late Future<List<Car>> _bookedCarsFuture;
 
   @override
   void initState() {
@@ -20,9 +24,14 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
     _loadBookedCars();
   }
 
+  // Публічний метод для перезавантаження даних екрану
+  void reloadBookedCars() {
+    _loadBookedCars();
+  }
+
   void _loadBookedCars() {
     setState(() {
-      _bookedCars = _carService.getBookedCars();
+      _bookedCarsFuture = _carService.getBookedCars();
     });
   }
 
@@ -39,19 +48,38 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
             ),
           ),
           Expanded(
-            child: _bookedCars.isEmpty
-                ? const Center(
+            child: FutureBuilder<List<Car>>(
+              future: _bookedCarsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Помилка завантаження: ${snapshot.error}',
+                      style: const TextStyle(fontSize: 16, color: Colors.red),
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
                     child: Text(
                       'У вас немає заброньованих автомобілів',
                       style: TextStyle(fontSize: 16),
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: _bookedCars.length,
-                    itemBuilder: (context, index) {
-                      return _buildBookedCarCard(_bookedCars[index]);
-                    },
-                  ),
+                  );
+                }
+
+                final bookedCars = snapshot.data!;
+                return ListView.builder(
+                  itemCount: bookedCars.length,
+                  itemBuilder: (context, index) {
+                    return _buildBookedCarCard(bookedCars[index]);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -63,7 +91,9 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: InkWell(
         onTap: () async {
-          await Navigator.of(context).push(
+          // Використовуємо Navigator.push з новим контекстом навігації (rootNavigator: true)
+          // Це дозволяє обійти нижні таби
+          await Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (context) => CarDetailScreen(car: car),
               fullscreenDialog: true,

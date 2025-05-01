@@ -1,277 +1,180 @@
 import '../models/car_model.dart';
+import '../repositories/car_repository.dart';
+import '../repositories/i_car_repository.dart';
+import '../repositories/mock_car_repository.dart';
+import '../../../core/services/api_config_service.dart';
 
 class CarService {
   // Singleton pattern
   static final CarService _instance = CarService._internal();
   factory CarService() => _instance;
-  CarService._internal();
+  CarService._internal() {
+    _initializeRepository();
+  }
 
-  // Track booked cars
+  // Track booked cars locally
   final List<String> _bookedCarIds = [];
+  
+  // Сервіс конфігурації API
+  final ApiConfigService _apiConfigService = ApiConfigService();
+  
+  // Repository for car data
+  late ICarRepository _carRepository;
+  bool _isOfflineMode = false;
+  
+  // Cache for cars to avoid excessive API calls
+  List<Car>? _cachedCars;
 
-  void bookCar(String carId) {
-    if (!_bookedCarIds.contains(carId)) {
-      _bookedCarIds.add(carId);
+  // Ініціалізуємо правильний репозиторій залежно від режиму роботи
+  Future<void> _initializeRepository() async {
+    _isOfflineMode = await _apiConfigService.isOfflineMode();
+    
+    if (_isOfflineMode) {
+      print('CarService: Using MockCarRepository for offline mode');
+      _carRepository = MockCarRepository();
+      // Синхронізуємо заброньовані автомобілі з моковим репозиторієм
+      _syncBookedCarsWithMockRepository();
+    } else {
+      print('CarService: Using real CarRepository with API');
+      _carRepository = CarRepository();
     }
   }
 
-  void unbookCar(String carId) {
-    _bookedCarIds.remove(carId);
+  // Синхронізуємо дані між сервісом та моковим репозиторієм
+  void _syncBookedCarsWithMockRepository() {
+    if (_carRepository is MockCarRepository) {
+      final mockRepo = _carRepository as MockCarRepository;
+      // Додаємо ID з мокового репозиторія до сервісу
+      for (var id in mockRepo.bookedCarIds) {
+        if (!_bookedCarIds.contains(id)) {
+          _bookedCarIds.add(id);
+        }
+      }
+    }
   }
 
+  // Перевіряємо і оновлюємо репозиторій перед кожною дією
+  Future<void> _ensureCorrectRepository() async {
+    final isCurrentlyOffline = await _apiConfigService.isOfflineMode();
+    
+    // Якщо режим змінився, оновлюємо репозиторій
+    if (isCurrentlyOffline != _isOfflineMode) {
+      await _initializeRepository();
+      // Скидаємо кеш при зміні режиму
+      _cachedCars = null;
+    }
+  }
+
+  // Book a car
+  Future<void> bookCar(String carId) async {
+    await _ensureCorrectRepository();
+    
+    if (!_bookedCarIds.contains(carId)) {
+      _bookedCarIds.add(carId);
+      try {
+        await _carRepository.bookCar(carId);
+        // Invalidate cache after booking
+        _cachedCars = null;
+      } catch (e) {
+        print('Error booking car in service: $e');
+        // If API call fails, remove from local bookings
+        _bookedCarIds.remove(carId);
+        rethrow;
+      }
+    }
+  }
+
+  // Unbook a car
+  Future<void> unbookCar(String carId) async {
+    await _ensureCorrectRepository();
+    
+    if (_bookedCarIds.contains(carId)) {
+      try {
+        await _carRepository.unbookCar(carId);
+        _bookedCarIds.remove(carId);
+        // Invalidate cache after unbooking
+        _cachedCars = null;
+      } catch (e) {
+        print('Error unbooking car in service: $e');
+        rethrow;
+      }
+    }
+  }
+
+  // Check if a car is booked
   bool isCarBooked(String carId) {
     return _bookedCarIds.contains(carId);
   }
 
-  List<Car> getBookedCars() {
-    return getMockCars().where((car) => _bookedCarIds.contains(car.id)).toList();
+  // Get booked cars
+  Future<List<Car>> getBookedCars() async {
+    await _ensureCorrectRepository();
+    
+    final allCars = await getAllCars();
+    return allCars.where((car) => _bookedCarIds.contains(car.id)).toList();
   }
 
-  List<Car> getAvailableCars() {
-    return getMockCars().where((car) => !_bookedCarIds.contains(car.id)).toList();
+  // Get available cars
+  Future<List<Car>> getAvailableCars() async {
+    await _ensureCorrectRepository();
+    
+    final allCars = await getAllCars();
+    return allCars.where((car) => !_bookedCarIds.contains(car.id)).toList();
   }
 
-  // Mock data for 20 different cars
-  List<Car> getMockCars() {
-    return [
-      Car(
-        id: '1',
-        brand: 'Ford',
-        model: 'Mustang',
-        year: 2021,
-        imageUrl: 'https://cdn3.riastatic.com/photosnew/auto/photo/ford_mustang__479482273f.jpg',
-        pricePerWeek: 4000,
-        fuelType: 'Бензин',
-        seats: 4,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '2',
-        brand: 'BMW',
-        model: 'X5',
-        year: 2022,
-        imageUrl: 'https://cdn3.riastatic.com/photosnew/auto/photo/bmw_x5__478624404f.jpg',
-        pricePerWeek: 3500,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 2',
-      ),
-      Car(
-        id: '3',
-        brand: 'Mercedes-Benz',
-        model: 'E-Class',
-        year: 2021,
-        imageUrl: 'https://cdn3.riastatic.com/photosnew/auto/photo/mercedes-benz_e-class__478453219f.jpg',
-        pricePerWeek: 3200,
-        fuelType: 'Бензин',
-        seats: 5,
-        carPark: 'Автопарк 3',
-      ),
-      Car(
-        id: '4',
-        brand: 'Audi',
-        model: 'A6',
-        year: 2020,
-        imageUrl: 'https://cdn1.riastatic.com/photosnew/auto/photo/audi_a6__478906291f.jpg',
-        pricePerWeek: 2800,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '5',
-        brand: 'Toyota',
-        model: 'Camry',
-        year: 2022,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/toyota_camry__478977840f.jpg',
-        pricePerWeek: 2000,
-        fuelType: 'Гібрид',
-        seats: 5,
-        carPark: 'Автопарк 2',
-      ),
-      Car(
-        id: '6',
-        brand: 'Volkswagen',
-        model: 'Touareg',
-        year: 2021,
-        imageUrl: 'https://cdn4.riastatic.com/photosnew/auto/photo/volkswagen_touareg__478747744f.jpg',
-        pricePerWeek: 3000,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 3',
-      ),
-      Car(
-        id: '7',
-        brand: 'Skoda',
-        model: 'Kodiaq',
-        year: 2022,
-        imageUrl: 'https://cdn1.riastatic.com/photosnew/auto/photo/skoda_kodiaq__475743581f.jpg',
-        pricePerWeek: 2200,
-        fuelType: 'Бензин',
-        seats: 7,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '8',
-        brand: 'Nissan',
-        model: 'X-Trail',
-        year: 2020,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/nissan_x-trail__474997350f.jpg',
-        pricePerWeek: 1900,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 2',
-      ),
-      Car(
-        id: '9',
-        brand: 'Lexus',
-        model: 'RX',
-        year: 2019,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/lexus_rx__476599670f.jpg',
-        pricePerWeek: 2800,
-        fuelType: 'Гібрид',
-        seats: 5,
-        carPark: 'Автопарк 3',
-      ),
-      Car(
-        id: '10',
-        brand: 'Tesla',
-        model: 'Model 3',
-        year: 2021,
-        imageUrl: 'https://cdn3.riastatic.com/photosnew/auto/photo/tesla_model-3__478766843f.jpg',
-        pricePerWeek: 3300,
-        fuelType: 'Електро',
-        seats: 5,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '11',
-        brand: 'Porsche',
-        model: 'Cayenne',
-        year: 2020,
-        imageUrl: 'https://cdn4.riastatic.com/photosnew/auto/photo/porsche_cayenne__477824654f.jpg',
-        pricePerWeek: 3900,
-        fuelType: 'Бензин',
-        seats: 5,
-        carPark: 'Автопарк 2',
-      ),
-      Car(
-        id: '12',
-        brand: 'Mazda',
-        model: 'CX-5',
-        year: 2021,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/mazda_cx-5__477947990f.jpg',
-        pricePerWeek: 1800,
-        fuelType: 'Бензин',
-        seats: 5,
-        carPark: 'Автопарк 3',
-      ),
-      Car(
-        id: '13',
-        brand: 'Honda',
-        model: 'CR-V',
-        year: 2019,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/honda_cr-v__476532410f.jpg',
-        pricePerWeek: 1700,
-        fuelType: 'Бензин',
-        seats: 5,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '14',
-        brand: 'Hyundai',
-        model: 'Santa Fe',
-        year: 2022,
-        imageUrl: 'https://cdn1.riastatic.com/photosnew/auto/photo/hyundai_santa-fe__476893981f.jpg',
-        pricePerWeek: 2100,
-        fuelType: 'Дизель',
-        seats: 7,
-        carPark: 'Автопарк 2',
-      ),
-      Car(
-        id: '15',
-        brand: 'Kia',
-        model: 'Sportage',
-        year: 2021,
-        imageUrl: 'https://cdn4.riastatic.com/photosnew/auto/photo/kia_sportage__476835904f.jpg',
-        pricePerWeek: 1800,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 3',
-      ),
-      Car(
-        id: '16',
-        brand: 'Volvo',
-        model: 'XC90',
-        year: 2020,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/volvo_xc90__478211100f.jpg',
-        pricePerWeek: 3100,
-        fuelType: 'Гібрид',
-        seats: 7,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '17',
-        brand: 'Land Rover',
-        model: 'Range Rover',
-        year: 2019,
-        imageUrl: 'https://cdn1.riastatic.com/photosnew/auto/photo/land-rover_range-rover__478654501f.jpg',
-        pricePerWeek: 3800,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 2',
-      ),
-      Car(
-        id: '18',
-        brand: 'Jeep',
-        model: 'Grand Cherokee',
-        year: 2021,
-        imageUrl: 'https://cdn3.riastatic.com/photosnew/auto/photo/jeep_grand-cherokee__476884573f.jpg',
-        pricePerWeek: 2700,
-        fuelType: 'Бензин',
-        seats: 5,
-        carPark: 'Автопарк 3',
-      ),
-      Car(
-        id: '19',
-        brand: 'Renault',
-        model: 'Koleos',
-        year: 2020,
-        imageUrl: 'https://cdn0.riastatic.com/photosnew/auto/photo/renault_koleos__477183690f.jpg',
-        pricePerWeek: 1600,
-        fuelType: 'Дизель',
-        seats: 5,
-        carPark: 'Автопарк 1',
-      ),
-      Car(
-        id: '20',
-        brand: 'Chevrolet',
-        model: 'Camaro',
-        year: 2022,
-        imageUrl: 'https://cdn4.riastatic.com/photosnew/auto/photo/chevrolet_camaro__475632394f.jpg',
-        pricePerWeek: 3700,
-        fuelType: 'Бензин',
-        seats: 4,
-        carPark: 'Автопарк 2',
-      ),
-    ];
+  // Get all cars from repository with caching
+  Future<List<Car>> getAllCars() async {
+    await _ensureCorrectRepository();
+    
+    if (_cachedCars != null) {
+      return _cachedCars!;
+    }
+    
+    try {
+      _cachedCars = await _carRepository.getCars();
+      return _cachedCars!;
+    } catch (e) {
+      print('Error getting cars: $e');
+      // Return empty list on error
+      return [];
+    }
+  }
+
+  // Get car by ID
+  Future<Car?> getCarById(String id) async {
+    await _ensureCorrectRepository();
+    
+    try {
+      return await _carRepository.getCarById(id);
+    } catch (e) {
+      print('Error getting car by ID: $e');
+      return null;
+    }
+  }
+
+  // Manually clear cache to force refresh
+  void clearCache() {
+    _cachedCars = null;
   }
 
   // Filter cars by search query
-  List<Car> filterCarsByQuery(String query) {
+  Future<List<Car>> filterCarsByQuery(String query) async {
+    await _ensureCorrectRepository();
+    
     if (query.isEmpty) {
-      return getMockCars();
+      return await getAllCars();
     }
 
+    final cars = await getAllCars();
     final lowercaseQuery = query.toLowerCase();
-    return getMockCars().where((car) {
+    return cars.where((car) {
       final fullName = car.fullName.toLowerCase();
       return fullName.contains(lowercaseQuery);
     }).toList();
   }
 
   // Filter cars by various parameters
-  List<Car> filterCars({
+  Future<List<Car>> filterCars({
     String? query,
     int? minPrice,
     int? maxPrice,
@@ -279,10 +182,12 @@ class CarService {
     int? seats,
     String? fuelType,
     String? carPark,
-  }) {
+  }) async {
+    await _ensureCorrectRepository();
+    
     var cars = query != null && query.isNotEmpty
-        ? filterCarsByQuery(query)
-        : getMockCars();
+        ? await filterCarsByQuery(query)
+        : await getAllCars();
 
     if (minPrice != null) {
       cars = cars.where((car) => car.pricePerWeek >= minPrice).toList();

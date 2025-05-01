@@ -4,9 +4,9 @@ class VerificationStatus extends StatelessWidget {
   final bool isVerified;
 
   const VerificationStatus({
-    Key? key,
+    super.key,
     required this.isVerified,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class VerificationStatus extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.green,
               shape: BoxShape.circle,
             ),

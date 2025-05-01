@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/car_model.dart';
 import '../services/car_service.dart';
 import 'car_detail_screen.dart';
@@ -14,14 +15,16 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   final _searchController = TextEditingController();
   final _carService = CarService();
   List<Car> _cars = [];
-  
+  bool _isLoading = true;
+  String? _error;
+
   // Filter states
   RangeValues _priceRange = const RangeValues(1500, 4000);
   String? _selectedBrand;
   int? _selectedSeats;
   String? _selectedFuelType;
   String? _selectedCarPark;
-  
+
   final List<String> _brands = [
     'Audi',
     'BMW',
@@ -44,7 +47,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     'Volkswagen',
     'Volvo',
   ];
-  
+
   final List<String> _fuelTypes = [
     'Бензин',
     'Дизель',
@@ -64,10 +67,18 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     _loadCars();
   }
 
-  void _loadCars() {
+  Future<void> _loadCars() async {
     setState(() {
-      // Only show available (non-booked) cars in search
-      _cars = _carService.getAvailableCars().where((car) {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Get all available cars
+      final availableCars = await _carService.getAvailableCars();
+      
+      // Apply filters to the list
+      final filteredCars = availableCars.where((car) {
         // Price filter
         if (car.pricePerWeek < _priceRange.start.toInt() || car.pricePerWeek > _priceRange.end.toInt()) {
           return false;
@@ -101,7 +112,17 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
 
         return true;
       }).toList();
-    });
+
+      setState(() {
+        _cars = filteredCars;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -127,14 +148,14 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Пошук авто для твоєї подорожі',
           prefixIcon: const Icon(Icons.search),
           suffixIcon: IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Visibility(visible: false, child: Icon(Icons.history)),
             onPressed: () {
               // History functionality would go here
             },
@@ -154,10 +175,12 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   }
 
   Widget _buildFilters() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
+      child: Wrap(
+        spacing: 2.0,
+        runSpacing: 2.0,
+        alignment: WrapAlignment.start,
         children: [
           _buildFilterChip('₴ Ціна', _showPriceFilterDialog),
           _buildFilterChip('К-ть місць', _showSeatsFilterDialog),
@@ -505,12 +528,48 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   }
 
   Widget _buildCarList() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              'Помилка завантаження даних',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadCars,
+              child: const Text('Спробувати знову'),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (_cars.isEmpty) {
+      return const Center(
+        child: Text(
+          'Немає доступних автомобілів за вашими фільтрами',
+          style: TextStyle(fontSize: 16),
+        ),
+      );
+    }
+    
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80), // Add padding for FAB
       itemCount: _cars.length,
       itemBuilder: (context, index) {
-        final car = _cars[index];
-        return _buildCarCard(car);
+        return _buildCarCard(_cars[index]);
       },
     );
   }
@@ -526,7 +585,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
               builder: (context) => CarDetailScreen(car: car),
             ),
           );
-          
+
           // Check if we need to switch to My Cars tab
           if (result != null && result is Map && result['switchToMyCars'] == true) {
             // Notify parent (HomeScreen) to switch to My Cars tab
@@ -539,14 +598,14 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
                   duration: Duration(seconds: 1),
                 ),
               );
-              
+
               // Navigate back to home screen
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop({'switchToMyCars': true});
               }
             }
           }
-          
+
           // Refresh car list after returning from details
           _loadCars();
         },

@@ -36,17 +36,24 @@ class UserModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final Map<String, dynamic> json = {
       'email': email,
-      'last_login': lastLogin,
-      'is_superuser': isSuperuser,
-      'is_active': isActive,
-      'is_staff': isStaff,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'profile': profile.toJson(),
     };
+    
+    // Додаємо поля тільки якщо вони не null
+    if (id != null) json['id'] = id;
+    if (lastLogin != null) json['last_login'] = lastLogin;
+    if (isSuperuser != null) json['is_superuser'] = isSuperuser;
+    if (isActive != null) json['is_active'] = isActive;
+    if (isStaff != null) json['is_staff'] = isStaff;
+    if (createdAt != null) json['created_at'] = createdAt;
+    if (updatedAt != null) json['updated_at'] = updatedAt;
+    
+    // Профіль також перевіряємо окремо
+    final profileJson = profile.toJson();
+    if (profileJson.isNotEmpty) json['profile'] = profileJson;
+    
+    return json;
   }
 }
 
@@ -73,12 +80,16 @@ class ProfileModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final Map<String, dynamic> json = {
       'name': name,
       'surname': surname,
-      'avatar': avatar,
     };
+    
+    // Додаємо null-able поля тільки якщо вони не null
+    if (id != null) json['id'] = id;
+    if (avatar != null) json['avatar'] = avatar;
+    
+    return json;
   }
 }
 

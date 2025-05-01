@@ -4,6 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_config_service.dart';
 import '../services/error_handler.dart';
 
+/// Константа для режиму offline
+const String _noInternetValue = 'no-internet';
+
 class ApiClient {
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -35,6 +38,20 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // Перевіряємо офлайн режим перед кожним запитом
+          final baseUrl = await _apiConfigService.getBaseUrl();
+          if (baseUrl == _noInternetValue) {
+            print('[API] ⚠️ Offline mode detected, rejecting request: ${options.path}');
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.connectionError, 
+                message: 'API calls are disabled in offline mode',
+              ),
+              true,
+            );
+          }
+          
           final token = await _secureStorage.read(key: 'access_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -42,7 +59,7 @@ class ApiClient {
           
           // Перевіряємо, чи не змінився базовий URL
           final currentBaseUrl = await _apiConfigService.getBaseUrl();
-          if (_baseUrl != currentBaseUrl && currentBaseUrl != "no-internet") {
+          if (_baseUrl != currentBaseUrl && currentBaseUrl != _noInternetValue) {
             _baseUrl = currentBaseUrl;
             _dio.options.baseUrl = _baseUrl!;
             print('[API] 🔄 URL змінено на: $_baseUrl');
@@ -58,6 +75,12 @@ class ApiClient {
         onError: (DioException error, handler) async {
           print('[API] ❌ ERROR [${error.response?.statusCode}]: ${error.requestOptions.path}');
           print('[API] Error message: ${error.message}');
+
+          // Якщо це офлайн-режим, не намагаємося зробити повторний запит
+          final currentBaseUrl = await _apiConfigService.getBaseUrl();
+          if (currentBaseUrl == _noInternetValue) {
+            return handler.next(error);
+          }
 
           if (error.response?.statusCode == 401) {
             // Token expired, try to refresh
@@ -110,15 +133,30 @@ class ApiClient {
   // Метод для негайного оновлення базового URL
   Future<void> refreshBaseUrl() async {
     final currentBaseUrl = await _apiConfigService.getBaseUrl();
-    if (_baseUrl != currentBaseUrl && currentBaseUrl != "no-internet") {
+    if (_baseUrl != currentBaseUrl) {
       _baseUrl = currentBaseUrl;
-      _dio.options.baseUrl = _baseUrl!;
+      if (currentBaseUrl != _noInternetValue) {
+        _dio.options.baseUrl = _baseUrl!;
+      }
       print('[API] 🔄 URL примусово оновлено на: $_baseUrl');
     }
   }
 
+  // Перевірка режиму offline
+  Future<bool> isOfflineMode() async {
+    final currentBaseUrl = await _apiConfigService.getBaseUrl();
+    return currentBaseUrl == _noInternetValue;
+  }
+
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
     await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
+    
+    // Перевіряємо режим offline
+    if (await isOfflineMode()) {
+      print('[API] ⚠️ GET request blocked in offline mode: $path');
+      throw ApiException(message: 'API calls are disabled in offline mode');
+    }
+    
     try {
       final response = await _dio.get(path, queryParameters: queryParameters);
       return response;
@@ -131,6 +169,13 @@ class ApiClient {
 
   Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
+    
+    // Перевіряємо режим offline
+    if (await isOfflineMode()) {
+      print('[API] ⚠️ POST request blocked in offline mode: $path');
+      throw ApiException(message: 'API calls are disabled in offline mode');
+    }
+    
     try {
       final response = await _dio.post(path, data: data, queryParameters: queryParameters);
       return response;
@@ -143,6 +188,13 @@ class ApiClient {
 
   Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
+    
+    // Перевіряємо режим offline
+    if (await isOfflineMode()) {
+      print('[API] ⚠️ PUT request blocked in offline mode: $path');
+      throw ApiException(message: 'API calls are disabled in offline mode');
+    }
+    
     try {
       final response = await _dio.put(path, data: data, queryParameters: queryParameters);
       return response;
@@ -155,6 +207,13 @@ class ApiClient {
 
   Future<Response> delete(String path, {Map<String, dynamic>? queryParameters}) async {
     await refreshBaseUrl(); // Оновлюємо URL перед кожним запитом
+    
+    // Перевіряємо режим offline
+    if (await isOfflineMode()) {
+      print('[API] ⚠️ DELETE request blocked in offline mode: $path');
+      throw ApiException(message: 'API calls are disabled in offline mode');
+    }
+    
     try {
       final response = await _dio.delete(path, queryParameters: queryParameters);
       return response;
