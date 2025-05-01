@@ -97,14 +97,8 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.text = mockUser.password;
     _nameController.text = mockUser.firstName;
     _surnameController.text = mockUser.lastName;
-
-    // Show snackbar with success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Форму заповнено випадковими даними'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    
+    // Прибрано Snackbar з повідомленням про заповнення випадковими даними
   }
 
   void _handleTitleTap() {
