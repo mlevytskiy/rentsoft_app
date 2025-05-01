@@ -132,69 +132,79 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 20),
-                    // Logo or App name with Fill button next to it
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    // Logo or App name with buttons positioned on top
+                    Stack(
                       children: [
-                        Column(
-                          children: [
-                            GestureDetector(
-                              onTap: _handleTitleTap,
-                              child: const Text(
-                                'RentSoft',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
+                        // Title and subtitle in the center
+                        Center(
+                          child: Column(
+                            children: [
+                              GestureDetector(
+                                onTap: _handleTitleTap,
+                                child: const Text(
+                                  'RentSoft',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const Text(
-                              'Тут ви можете орендувати машину',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 22,
-                                color: Colors.black87,
+                              const Text(
+                                'Тут ви можете орендувати машину',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: Colors.black87,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        ElevatedButton(
-                          onPressed: _fillWithMockData,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            shape: const CircleBorder(),
-                            padding: const EdgeInsets.all(16),
-                          ),
-                          child: const Icon(
-                            Icons.auto_fix_high,
-                            size: 24,
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        _showSecretButton
-                            ? ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => const SecretScreen(),
-                                    ),
-                                  );
-                                },
+                        // Buttons positioned at the top-right corner
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Row(
+                            children: [
+                              ElevatedButton(
+                                onPressed: _fillWithMockData,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.amber,
+                                  backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
                                   shape: const CircleBorder(),
                                   padding: const EdgeInsets.all(16),
                                 ),
                                 child: const Icon(
-                                  Icons.vpn_key,
+                                  Icons.auto_fix_high,
                                   size: 24,
                                 ),
-                              )
-                            : const SizedBox(),
+                              ),
+                              const SizedBox(width: 16),
+                              _showSecretButton
+                                  ? ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => const SecretScreen(),
+                                          ),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber,
+                                        foregroundColor: Colors.white,
+                                        shape: const CircleBorder(),
+                                        padding: const EdgeInsets.all(16),
+                                      ),
+                                      child: const Icon(
+                                        Icons.vpn_key,
+                                        size: 24,
+                                      ),
+                                    )
+                                  : const SizedBox(),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 40),
