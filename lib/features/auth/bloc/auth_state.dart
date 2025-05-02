@@ -14,11 +14,19 @@ class AuthLoading extends AuthState {}
 
 class AuthAuthenticated extends AuthState {
   final UserModel user;
+  final bool isNewUser;
   
-  const AuthAuthenticated(this.user);
+  // Для нових користувачів після реєстрації
+  factory AuthAuthenticated.newUser(UserModel user) {
+    return AuthAuthenticated(user, isNewUser: true);
+  }
   
-  @override
-  List<Object?> get props => [user];
+  // Для існуючих, які входять в систему
+  factory AuthAuthenticated.existingUser(UserModel user) {
+    return AuthAuthenticated(user, isNewUser: false);
+  }
+  
+  const AuthAuthenticated(this.user, {this.isNewUser = false});
 }
 
 class AuthUnauthenticated extends AuthState {}

@@ -28,7 +28,11 @@ class MockAuthRepository implements IAuthRepository {
       return UserModel.fromJson(userData);
     } else {
       // Create a default profile if none exists
-      final profile = ProfileModel(name: 'Користувач', surname: 'Тестовий');
+      final profile = ProfileModel(
+        name: 'Користувач', 
+        surname: 'Тестовий',
+        isVerified: true, // Користувачі, які входять без реєстрації, вважаються верифікованими
+      );
       final user = UserModel(
         id: DateTime.now().millisecondsSinceEpoch,
         email: email.isNotEmpty ? email : 'test@example.com', 
@@ -54,7 +58,11 @@ class MockAuthRepository implements IAuthRepository {
     await Future.delayed(const Duration(seconds: 2));
     
     // Create profile and user models
-    final profile = ProfileModel(name: name, surname: surname);
+    final profile = ProfileModel(
+      name: name, 
+      surname: surname,
+      isVerified: false, // Явно встановлюємо isVerified = false для нових користувачів
+    );
     final user = UserModel(
       id: DateTime.now().millisecondsSinceEpoch,
       email: email,

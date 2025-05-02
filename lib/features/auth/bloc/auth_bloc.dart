@@ -42,7 +42,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Get current user data from storage
         final user = await repository.getCurrentUser();
         if (user != null) {
-          emit(AuthAuthenticated(user));
+          // Перевіряємо, чи користувач пройшов верифікацію
+          // Якщо верифікований - це існуючий користувач 
+          // Якщо не верифікований - це новий користувач
+          if (user.profile.isVerified) {
+            emit(AuthAuthenticated.existingUser(user));
+          } else {
+            emit(AuthAuthenticated.newUser(user));
+          }
         } else {
           emit(AuthUnauthenticated());
         }
@@ -65,7 +72,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.email,
         event.password,
       );
-      emit(AuthAuthenticated(user));
+      // Явно вказуємо, що користувач існуючий
+      emit(AuthAuthenticated.existingUser(user));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }
@@ -84,7 +92,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.name,
         event.surname,
       );
-      emit(AuthAuthenticated(user));
+      // Відмічаємо, що користувач новий і потребує верифікації
+      print('DEBUG: Реєстрація користувача - встановлюємо isNewUser=true');
+      print('DEBUG: Профіль користувача isVerified=${user.profile.isVerified}');
+      // Явно використовуємо фабричний метод для нового користувача
+      emit(AuthAuthenticated.newUser(user));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }

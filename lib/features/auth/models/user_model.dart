@@ -62,12 +62,14 @@ class ProfileModel {
   final String name;
   final String surname;
   final String? avatar;
+  final bool isVerified;
 
   ProfileModel({
     this.id,
     required this.name,
     required this.surname,
     this.avatar,
+    this.isVerified = false,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -76,6 +78,7 @@ class ProfileModel {
       name: json['name'],
       surname: json['surname'],
       avatar: json['avatar'],
+      isVerified: json['is_verified'] ?? false,
     );
   }
 
@@ -83,6 +86,7 @@ class ProfileModel {
     final Map<String, dynamic> json = {
       'name': name,
       'surname': surname,
+      'is_verified': isVerified,
     };
     
     // Додаємо null-able поля тільки якщо вони не null
@@ -90,6 +94,22 @@ class ProfileModel {
     if (avatar != null) json['avatar'] = avatar;
     
     return json;
+  }
+
+  ProfileModel copyWith({
+    int? id,
+    String? name,
+    String? surname,
+    String? avatar,
+    bool? isVerified,
+  }) {
+    return ProfileModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      surname: surname ?? this.surname,
+      avatar: avatar ?? this.avatar,
+      isVerified: isVerified ?? this.isVerified,
+    );
   }
 }
 

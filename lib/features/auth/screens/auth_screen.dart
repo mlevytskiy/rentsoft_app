@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rentsoft_app/features/home/screens/home_screen.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/di/service_locator.dart';
@@ -9,6 +10,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../services/mock_data_service.dart';
+import 'verification_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -38,20 +40,20 @@ class _AuthScreenState extends State<AuthScreen> {
     super.initState();
     _refreshConfiguration();
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _refreshConfiguration();
   }
-  
+
   // Оновлює конфігурацію API при показі екрану
   Future<void> _refreshConfiguration() async {
     await _apiClient.refreshBaseUrl();
     // Перевіряємо режим після оновлення URL
     final isOfflineMode = await _apiConfigService.isOfflineMode();
     print('[AuthScreen] 🌐 Режим роботи: ${isOfflineMode ? 'Без інтернету' : 'З інтернетом'}');
-    
+
     // Оновлюємо AuthBloc тільки якщо контекст доступний
     if (mounted && context.mounted) {
       context.read<AuthBloc>().add(AuthCheckStatusEvent());
@@ -77,12 +79,19 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           );
     } else {
+      // При реєстрації нового користувача
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      final name = _nameController.text.trim();
+      final surname = _surnameController.text.trim();
+      
+      // Додаємо подію реєстрації в AuthBloc
       context.read<AuthBloc>().add(
             AuthRegisterEvent(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-              name: _nameController.text.trim(),
-              surname: _surnameController.text.trim(),
+              email: email,
+              password: password,
+              name: name,
+              surname: surname,
             ),
           );
     }
@@ -97,7 +106,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.text = mockUser.password;
     _nameController.text = mockUser.firstName;
     _surnameController.text = mockUser.lastName;
-    
+
     // Прибрано Snackbar з повідомленням про заповнення випадковими даними
   }
 
@@ -136,7 +145,30 @@ class _AuthScreenState extends State<AuthScreen> {
       appBar: AppBar(),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthFailure) {
+          if (state is AuthAuthenticated) {
+            // Debug логування
+            print('DEBUG: AuthScreen отримав стан AuthAuthenticated');
+            print('DEBUG: state.isNewUser = ${state.isNewUser}');
+            
+            // Перенаправляємо залежно від того, новий це користувач чи ні
+            if (state.isNewUser) {
+              print('DEBUG: Переходимо на екран верифікації');
+              // Новий користувач -> екран верифікації
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => VerificationScreen(user: state.user),
+                ),
+              );
+            } else {
+              print('DEBUG: Переходимо на головний екран');
+              // Існуючий користувач -> головний екран
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const HomeScreen(),
+                ),
+              );
+            }
+          } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
             );

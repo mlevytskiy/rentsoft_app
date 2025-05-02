@@ -40,7 +40,7 @@ class _AccountScreenState extends State<AccountScreen> {
         _firstName = user.profile.name;
         _lastName = user.profile.surname;
         _email = user.email;
-        _isVerified = user.isActive ?? false;
+        _isVerified = user.profile.isVerified; // Використовуємо поле isVerified з profile
         
         // Update controllers if already initialized
         _firstNameController.text = _firstName;
