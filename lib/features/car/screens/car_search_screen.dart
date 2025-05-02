@@ -146,6 +146,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAF8FF),
       body: SafeArea(
         child: Column(
           children: [
@@ -185,7 +186,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: Colors.grey.shade200,
+          fillColor: const Color(0xFFE8E7EF),
         ),
         onChanged: (value) {
           _loadCars();
@@ -602,6 +603,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
         borderRadius: BorderRadius.circular(8),
       ),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFFE2E2E9),
       child: InkWell(
         onTap: () async {
           // Navigation to details screen
