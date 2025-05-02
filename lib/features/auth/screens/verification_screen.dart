@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../../home/screens/home_screen.dart';
 import 'document_verification_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
@@ -13,8 +12,9 @@ class VerificationScreen extends StatefulWidget {
 }
 
 class _VerificationScreenState extends State<VerificationScreen> {
-  // Відстежуємо, які панелі розгорнуті
-  final List<bool> _isExpanded = [false, false, false, false];
+  late final List<bool> _isExpanded;
+  late final ScrollController _scrollController;
+  final GlobalKey _headerIconKey = GlobalKey();
 
   // Детальний опис кожного кроку
   final Map<String, String> _descriptions = {
@@ -29,14 +29,57 @@ class _VerificationScreenState extends State<VerificationScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    // Ініціалізуємо список станів розкриття елементів
+    _isExpanded = List.generate(4, (_) => false);
+    
+    // Ініціалізуємо контролер прокрутки
+    _scrollController = ScrollController();
+    
+    // Запускаємо програмний скролінг після рендерингу віджетів
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToTopEdge();
+    });
+  }
+  
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
+  // Метод для програмного скролінгу
+  void _scrollToTopEdge() {
+    if (_headerIconKey.currentContext != null) {
+      final RenderBox box = _headerIconKey.currentContext!.findRenderObject() as RenderBox;
+      final position = box.localToGlobal(Offset.zero);
+      
+      // Розраховуємо скільки потрібно проскролити для досягнення відстані 8px 
+      // від верхнього краю екрану до верхнього краю іконки
+      final screenTopPadding = MediaQuery.of(context).padding.top; // SafeArea верхній відступ
+      final targetOffset = position.dy - screenTopPadding - 8;
+      
+      if (targetOffset > 0) {
+        _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 60, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Column(
@@ -44,6 +87,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   children: [
                     // Іконка верифікації
                     Container(
+                      key: _headerIconKey,
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
@@ -274,10 +318,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   // Перехід на головний екран без верифікації
   void _skipVerification() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const HomeScreen(),
-      ),
-    );
+    Navigator.of(context).pop();
   }
 }

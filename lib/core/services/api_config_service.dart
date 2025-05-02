@@ -24,8 +24,8 @@ class ApiConfigService {
     final prefs = await SharedPreferences.getInstance();
     final baseUrl = prefs.getString(_baseUrlKey);
 
-    // Якщо URL ще не було збережено, використовувати публічний URL за замовчуванням
-    _cachedBaseUrl = baseUrl ?? _publicUrl;
+    // Якщо URL ще не було збережено, використовувати режим "Without internet" за замовчуванням
+    _cachedBaseUrl = baseUrl ?? _withoutInternetValue;
     return _cachedBaseUrl!;
   }
 
