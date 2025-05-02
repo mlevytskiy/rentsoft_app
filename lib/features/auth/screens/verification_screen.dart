@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../../home/screens/home_screen.dart';
+import 'document_verification_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final UserModel user;
@@ -217,8 +218,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
       height: 48,
       child: ElevatedButton(
         onPressed: () {
-          // Тут буде логіка для початку процесу верифікації
-          _showVerificationMessage();
+          // Тепер замість повідомлення переходимо на екран верифікації документів
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const DocumentVerificationScreen(),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF485E92),
@@ -263,25 +268,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-      ),
-    );
-  }
-
-  // Показ повідомлення про верифікацію (тимчасова заглушка)
-  void _showVerificationMessage() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Верифікація'),
-        content: const Text('Функціонал верифікації знаходиться у розробці'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }
