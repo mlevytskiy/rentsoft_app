@@ -33,7 +33,8 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   bool _isLogin = true;
   bool _isPasswordVisible = false;
   bool _showSecretButton = false; // Контролює видимість жовтої кнопки
-  FleetMode _fleetMode = FleetMode.all; // За замовчуванням показуємо всі автопарки
+  FleetMode _fleetMode =
+      FleetMode.all; // За замовчуванням показуємо всі автопарки
 
   // Для відстеження послідовних натискань
   final List<DateTime> _tapTimestamps = [];
@@ -63,7 +64,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Викликається при зміні стану життєвого циклу додатка
     super.didChangeAppLifecycleState(state);
-    
+
     if (state == AppLifecycleState.resumed) {
       // Якщо додаток відновлено, оновлюємо налаштування
       _loadFleetMode();
@@ -91,7 +92,8 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     await _apiClient.refreshBaseUrl();
     // Перевіряємо режим після оновлення URL
     final isOfflineMode = await _apiConfigService.isOfflineMode();
-    print('[AuthScreen] 🌐 Режим роботи: ${isOfflineMode ? 'Без інтернету' : 'З інтернетом'}');
+    print(
+        '[AuthScreen] 🌐 Режим роботи: ${isOfflineMode ? 'Без інтернету' : 'З інтернетом'}');
 
     // Оновлюємо AuthBloc тільки якщо контекст доступний
     if (mounted && context.mounted) {
@@ -156,7 +158,8 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     _tapTimestamps.add(now);
 
     // Залишаємо тільки натискання за останні 2 секунди
-    _tapTimestamps.removeWhere((timestamp) => now.difference(timestamp).inSeconds > 2);
+    _tapTimestamps
+        .removeWhere((timestamp) => now.difference(timestamp).inSeconds > 2);
 
     // Перевіряємо, чи було 5 натискань протягом останніх 2 секунд
     if (_tapTimestamps.length >= 5) {
@@ -174,10 +177,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     if (!mounted) return; // Перевіряємо, чи віджет ще в дереві
 
     final fleetMode = await _scenarioService.getFleetMode();
-    
+
     // Виводимо режим для дебагу
     print('[AuthScreen] Поточний режим автопарків: $fleetMode');
-    
+
     if (mounted) {
       setState(() {
         _fleetMode = fleetMode;
@@ -243,8 +246,25 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // Прибрано логотип, як було до змін
-                              
+                              // Іконка
+                              Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/frame.png',
+                                    width: 72,
+                                    height: 72,
+                                  ),
+                                  Image.asset(
+                                    'assets/images/auth_logo.png',
+                                    width: 27,
+                                    height: 27,
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 24),
+
                               // Заголовок залежно від режиму флоту
                               if (_fleetMode == FleetMode.all) ...[
                                 // Стандартний заголовок для всіх автопарків
@@ -330,14 +350,16 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                                         // Відкриваємо Secret Screen з очікуванням завершення
                                         await Navigator.of(context).push(
                                           MaterialPageRoute(
-                                            builder: (context) => const SecretScreen(),
+                                            builder: (context) =>
+                                                const SecretScreen(),
                                           ),
                                         );
-                                        
+
                                         // Оновлюємо дані після повернення з Secret Screen
                                         if (mounted) {
                                           await _loadFleetMode();
-                                          print('[AuthScreen] Оновлено режим після повернення з Secret Screen');
+                                          print(
+                                              '[AuthScreen] Оновлено режим після повернення з Secret Screen');
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
@@ -372,7 +394,8 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
                         }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
                           return 'Please enter a valid email';
                         }
                         return null;
@@ -389,7 +412,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                           ),
                           onPressed: () {
                             setState(() {
@@ -449,12 +474,14 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                     ElevatedButton(
                       onPressed: _submitForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3F5185), // Navy blue color
+                        backgroundColor:
+                            const Color(0xFF3F5185), // Navy blue color
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(100),
                         ),
+                        minimumSize: const Size(double.infinity, 48),
                       ),
                       child: Text(
                         _isLogin ? 'УВІЙТИ' : 'ЗАРЕЄСТРУВАТИСЯ',
@@ -467,7 +494,41 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                     TextButton(
                       onPressed: _toggleAuthMode,
                       child: Text(
-                        _isLogin ? 'Немає акаунту? Зареєструватися' : 'Вже маєте акаунт? Увійти',
+                        _isLogin
+                            ? 'Немає акаунту? Зареєструватися'
+                            : 'Вже маєте акаунт? Увійти',
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+
+                    // Текст про політику конфіденційності - завжди видимий
+                    const SizedBox(height: 12),
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: const TextSpan(
+                        style: TextStyle(
+                          color: Color(0xFF585F72),
+                          fontSize: 12,
+                        ),
+                        children: [
+                          TextSpan(text: 'Реєстуючись, я погоджуюся з '),
+                          TextSpan(
+                            text: 'Умовами користування',
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                              color: Color(0xFF625B71),
+                            ),
+                          ),
+                          TextSpan(text: ' та '),
+                          TextSpan(
+                            text: 'Політикою конфіденційності',
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                              color: Color(0xFF625B71),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
