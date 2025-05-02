@@ -84,7 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
       final password = _passwordController.text;
       final name = _nameController.text.trim();
       final surname = _surnameController.text.trim();
-      
+
       // Додаємо подію реєстрації в AuthBloc
       context.read<AuthBloc>().add(
             AuthRegisterEvent(
@@ -149,7 +149,7 @@ class _AuthScreenState extends State<AuthScreen> {
             // Debug логування
             print('DEBUG: AuthScreen отримав стан AuthAuthenticated');
             print('DEBUG: state.isNewUser = ${state.isNewUser}');
-            
+
             // Перенаправляємо залежно від того, новий це користувач чи ні
             if (state.isNewUser) {
               print('DEBUG: Переходимо на екран верифікації');
@@ -229,11 +229,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                   backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
                                   shape: const CircleBorder(),
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(4),
                                 ),
                                 child: const Icon(
                                   Icons.auto_fix_high,
-                                  size: 24,
+                                  size: 18,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -250,11 +250,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                         backgroundColor: Colors.amber,
                                         foregroundColor: Colors.white,
                                         shape: const CircleBorder(),
-                                        padding: const EdgeInsets.all(16),
+                                        padding: const EdgeInsets.all(4),
                                       ),
                                       child: const Icon(
                                         Icons.vpn_key,
-                                        size: 24,
+                                        size: 18,
                                       ),
                                     )
                                   : const SizedBox(),
