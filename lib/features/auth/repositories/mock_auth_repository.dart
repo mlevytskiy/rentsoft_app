@@ -31,7 +31,7 @@ class MockAuthRepository implements IAuthRepository {
       final profile = ProfileModel(
         name: 'Користувач', 
         surname: 'Тестовий',
-        isVerified: true, // Користувачі, які входять без реєстрації, вважаються верифікованими
+        verificationStatus: VerificationStatus.verified, // Користувачі, які входять без реєстрації, вважаються верифікованими
       );
       final user = UserModel(
         id: DateTime.now().millisecondsSinceEpoch,
@@ -61,7 +61,7 @@ class MockAuthRepository implements IAuthRepository {
     final profile = ProfileModel(
       name: name, 
       surname: surname,
-      isVerified: false, // Явно встановлюємо isVerified = false для нових користувачів
+      verificationStatus: VerificationStatus.notVerified, // Явно встановлюємо notVerified для нових користувачів
     );
     final user = UserModel(
       id: DateTime.now().millisecondsSinceEpoch,
@@ -119,5 +119,34 @@ class MockAuthRepository implements IAuthRepository {
   Future<bool> hasValidToken() async {
     final token = await _secureStorage.read(key: 'access_token');
     return token != null && token.isNotEmpty;
+  }
+  
+  // Метод для оновлення статусу верифікації користувача
+  Future<UserModel?> updateVerificationStatus(VerificationStatus status) async {
+    final userJson = await _secureStorage.read(key: 'user_data');
+    if (userJson != null) {
+      final userData = jsonDecode(userJson);
+      final user = UserModel.fromJson(userData);
+      
+      // Створюємо оновлений профіль з новим статусом
+      final updatedProfile = user.profile.copyWith(verificationStatus: status);
+      final updatedUser = UserModel(
+        id: user.id,
+        email: user.email,
+        lastLogin: user.lastLogin,
+        isSuperuser: user.isSuperuser,
+        isActive: user.isActive,
+        isStaff: user.isStaff,
+        createdAt: user.createdAt,
+        updatedAt: DateTime.now().toIso8601String(),
+        profile: updatedProfile,
+      );
+      
+      // Зберігаємо оновлені дані
+      await _secureStorage.write(key: 'user_data', value: jsonEncode(updatedUser.toJson()));
+      
+      return updatedUser;
+    }
+    return null;
   }
 }

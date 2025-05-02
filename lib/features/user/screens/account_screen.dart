@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rentsoft_app/features/auth/bloc/auth_bloc.dart';
 import 'package:rentsoft_app/features/auth/bloc/auth_event.dart';
+import 'package:rentsoft_app/features/auth/models/user_model.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../features/auth/repositories/mock_auth_repository.dart';
-import '../widgets/verification_status.dart';
+import '../widgets/verification_status_widget.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -25,7 +26,7 @@ class _AccountScreenState extends State<AccountScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
-  bool _isVerified = false;
+  VerificationStatus _verificationStatus = VerificationStatus.notVerified;
 
   @override
   void initState() {
@@ -41,7 +42,7 @@ class _AccountScreenState extends State<AccountScreen> {
         _firstName = user.profile.name;
         _lastName = user.profile.surname;
         _email = user.email;
-        _isVerified = user.profile.isVerified; // Використовуємо поле isVerified з profile
+        _verificationStatus = user.profile.verificationStatus;
 
         // Update controllers if already initialized
         _firstNameController.text = _firstName;
@@ -68,90 +69,92 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildUserAvatar(),
-              const SizedBox(height: 24),
-              if (_isEditing) ...[
-                // In edit mode, show the edit boxes
-                // Name and surname in a row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _firstNameController,
-                        label: "Ім'я",
-                        icon: Icons.person,
-                        enabled: _isEditing,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildUserAvatar(),
+                const SizedBox(height: 24),
+                if (_isEditing) ...[
+                  // In edit mode, show the edit boxes
+                  // Name and surname in a row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _firstNameController,
+                          label: "Ім'я",
+                          icon: Icons.person,
+                          enabled: _isEditing,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _lastNameController,
+                          label: 'Прізвище',
+                          icon: Icons.person_outline,
+                          enabled: _isEditing,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _emailController,
+                    label: 'Електронна адреса',
+                    icon: Icons.email,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: _isEditing,
+                  ),
+                ] else ...[
+                  // In view mode, just show text
+                  Center(
+                    child: Text(
+                      '$_firstName $_lastName',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _lastNameController,
-                        label: 'Прізвище',
-                        icon: Icons.person_outline,
-                        enabled: _isEditing,
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      _email,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade700,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _emailController,
-                  label: 'Електронна адреса',
-                  icon: Icons.email,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: _isEditing,
-                ),
-              ] else ...[
-                // In view mode, just show text
-                Center(
-                  child: Text(
-                    '$_firstName $_lastName',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    _email,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              VerificationStatus(isVerified: _isVerified),
-              const SizedBox(height: 24),
-              _buildEditButton(),
-              const SizedBox(height: 16),
-              _buildLogoutButton(
-                label: 'Вийти з облікового запису',
-                color: const Color(0xFF3F5185), // Navy blue color
-              ),
-              if (_isEditing) ...[
+                ],
+                const SizedBox(height: 24),
+                VerificationStatusWidget(status: _verificationStatus),
+                const SizedBox(height: 24),
+                _buildEditButton(),
                 const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _isEditing = false;
-                      _loadUserData(); // Reset to original values
-                    });
-                  },
-                  child: const Text('Скасувати'),
+                _buildLogoutButton(
+                  label: 'Вийти з облікового запису',
+                  color: const Color(0xFF3F5185), // Navy blue color
                 ),
+                if (_isEditing) ...[
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _isEditing = false;
+                        _loadUserData(); // Reset to original values
+                      });
+                    },
+                    child: const Text('Скасувати'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

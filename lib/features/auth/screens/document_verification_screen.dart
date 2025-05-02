@@ -1,7 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../models/user_model.dart';
+import '../repositories/mock_auth_repository.dart';
 import '../../home/screens/home_screen.dart';
+import '../../../core/di/service_locator.dart';
 
 class DocumentVerificationScreen extends StatefulWidget {
   const DocumentVerificationScreen({Key? key}) : super(key: key);
@@ -80,21 +86,40 @@ class _DocumentVerificationScreenState extends State<DocumentVerificationScreen>
 
     setState(() => _isLoading = true);
 
-    // Імітація відправки документів на сервер
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() => _isLoading = false);
+    try {
+      // Отримуємо інстанцію репозиторію
+      final authRepository = getIt<MockAuthRepository>();
       
-      // Показуємо повідомлення про успішну відправку
+      // Оновлюємо статус користувача на "на перевірці"
+      final updatedUser = await authRepository.updateVerificationStatus(VerificationStatus.pending);
+      
+      if (updatedUser != null) {
+        // Імітація відправки фотографій на сервер
+        await Future.delayed(const Duration(seconds: 2));
+        
+        if (mounted) {
+          // Оновлюємо стан користувача в BloC
+          context.read<AuthBloc>().add(AuthCheckStatusEvent());
+          
+          // Повідомляємо про успішну відправку
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Документи відправлені на перевірку')),
+          );
+          
+          // Перенаправляємо на головний екран
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Документи відправлені на перевірку')),
+        SnackBar(content: Text('Помилка при відправці документів: ${e.toString()}')),
       );
-      
-      // Перенаправляємо на головний екран
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

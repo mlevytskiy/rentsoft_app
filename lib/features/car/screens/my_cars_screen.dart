@@ -38,50 +38,52 @@ class MyCarsScreenState extends State<MyCarsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Мої заброньовані автомобілі',
-              style: Theme.of(context).textTheme.headlineSmall,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Мої заброньовані автомобілі',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
             ),
-          ),
-          Expanded(
-            child: FutureBuilder<List<Car>>(
-              future: _bookedCarsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Помилка завантаження: ${snapshot.error}',
-                      style: const TextStyle(fontSize: 16, color: Colors.red),
-                    ),
-                  );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'У вас немає заброньованих автомобілів',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  );
-                }
+            Expanded(
+              child: FutureBuilder<List<Car>>(
+                future: _bookedCarsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Помилка завантаження: ${snapshot.error}',
+                        style: const TextStyle(fontSize: 16, color: Colors.red),
+                      ),
+                    );
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'У вас немає заброньованих автомобілів',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    );
+                  }
 
-                final bookedCars = snapshot.data!;
-                return ListView.builder(
-                  itemCount: bookedCars.length,
-                  itemBuilder: (context, index) {
-                    return _buildBookedCarCard(bookedCars[index]);
-                  },
-                );
-              },
+                  final bookedCars = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: bookedCars.length,
+                    itemBuilder: (context, index) {
+                      return _buildBookedCarCard(bookedCars[index]);
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

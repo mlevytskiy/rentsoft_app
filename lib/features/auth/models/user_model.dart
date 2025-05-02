@@ -1,3 +1,62 @@
+import 'package:flutter/material.dart';
+
+// Додамо enum для статусів верифікації
+enum VerificationStatus {
+  notVerified,    // Не верифіковано
+  pending,        // На перевірці
+  verified        // Верифіковано
+}
+
+// Допоміжний метод для конвертації між типами
+extension VerificationStatusExtension on VerificationStatus {
+  String toJson() {
+    switch (this) {
+      case VerificationStatus.notVerified:
+        return 'not_verified';
+      case VerificationStatus.pending:
+        return 'pending';
+      case VerificationStatus.verified:
+        return 'verified';
+    }
+  }
+
+  static VerificationStatus fromJson(String? json) {
+    switch (json) {
+      case 'verified':
+        return VerificationStatus.verified;
+      case 'pending':
+        return VerificationStatus.pending;
+      case 'not_verified':
+      default:
+        return VerificationStatus.notVerified;
+    }
+  }
+  
+  // Метод для отримання зрозумілої назви статусу українською
+  String toUkrainianString() {
+    switch (this) {
+      case VerificationStatus.notVerified:
+        return 'Не верифіковано';
+      case VerificationStatus.pending:
+        return 'На перевірці';
+      case VerificationStatus.verified:
+        return 'Верифіковано';
+    }
+  }
+
+  // Метод для отримання відповідного кольору статусу
+  Color toColor() {
+    switch (this) {
+      case VerificationStatus.notVerified:
+        return Colors.red;
+      case VerificationStatus.pending:
+        return Colors.orange;
+      case VerificationStatus.verified:
+        return Colors.green;
+    }
+  }
+}
+
 class UserModel {
   final int? id;
   final String email;
@@ -62,23 +121,44 @@ class ProfileModel {
   final String name;
   final String surname;
   final String? avatar;
-  final bool isVerified;
+  final VerificationStatus verificationStatus;
 
   ProfileModel({
     this.id,
     required this.name,
     required this.surname,
     this.avatar,
-    this.isVerified = false,
+    this.verificationStatus = VerificationStatus.notVerified,
   });
 
+  // Допоміжний геттер для зворотної сумісності
+  bool get isVerified => verificationStatus == VerificationStatus.verified;
+
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    // Обробка різних форматів даних від API
+    var verificationValue = json['verification_status'] ?? json['is_verified'];
+    
+    // Якщо це старий формат (булеве значення)
+    if (verificationValue is bool) {
+      return ProfileModel(
+        id: json['id'],
+        name: json['name'],
+        surname: json['surname'],
+        avatar: json['avatar'],
+        verificationStatus: verificationValue 
+            ? VerificationStatus.verified 
+            : VerificationStatus.notVerified,
+      );
+    }
+    
+    // Якщо це новий формат (рядок статусу)
     return ProfileModel(
       id: json['id'],
       name: json['name'],
       surname: json['surname'],
       avatar: json['avatar'],
-      isVerified: json['is_verified'] ?? false,
+      verificationStatus: VerificationStatusExtension.fromJson(
+          verificationValue as String?),
     );
   }
 
@@ -86,7 +166,8 @@ class ProfileModel {
     final Map<String, dynamic> json = {
       'name': name,
       'surname': surname,
-      'is_verified': isVerified,
+      'verification_status': verificationStatus.toJson(),
+      'is_verified': isVerified, // Для зворотної сумісності
     };
     
     // Додаємо null-able поля тільки якщо вони не null
@@ -101,14 +182,14 @@ class ProfileModel {
     String? name,
     String? surname,
     String? avatar,
-    bool? isVerified,
+    VerificationStatus? verificationStatus,
   }) {
     return ProfileModel(
       id: id ?? this.id,
       name: name ?? this.name,
       surname: surname ?? this.surname,
       avatar: avatar ?? this.avatar,
-      isVerified: isVerified ?? this.isVerified,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
     );
   }
 }
