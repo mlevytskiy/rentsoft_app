@@ -6,6 +6,7 @@ class ApiConfigService {
   static const String _withoutInternetValue = 'no-internet';
   static const String _localhostUrl = 'http://localhost:8888/';
   static const String _publicUrl = 'http://rentsoft.us-east-1.elasticbeanstalk.com/api/';
+  static const String _usageScenarioKey = 'usage_scenario';  // Ключ для сценарію використання
 
   // Сервіс-сінглтон
   static final ApiConfigService _instance = ApiConfigService._internal();
@@ -65,4 +66,16 @@ class ApiConfigService {
 
   // Отримати публічний URL
   String getPublicUrl() => _publicUrl;
+
+  // Зберегти вибраний сценарій використання
+  Future<void> saveUsageScenario(String scenarioName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_usageScenarioKey, scenarioName);
+  }
+
+  // Отримати збережений сценарій використання
+  Future<String?> getSavedUsageScenario() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_usageScenarioKey);
+  }
 }
