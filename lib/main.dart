@@ -41,12 +41,19 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       navigatorKey: navigatorKey,
+      // Маршрути додатка
+      routes: {
+        '/login': (context) => const AuthScreen(),
+      },
       home: BlocBuilder<AuthBloc, AuthState>(
         buildWhen: (previous, current) {
-          // Вимикаємо це правило, щоб дозволити перебудову для нових користувачів
+          print('DEBUG: BlocBuilder buildWhen previous=${previous.runtimeType}, current=${current.runtimeType}');
+          // Завжди перебудовуємо, щоб коректно реагувати на всі зміни стану
           return true;
         },
         builder: (context, state) {
+          print('DEBUG: BlocBuilder building with state=${state.runtimeType}');
+          
           if (state is AuthLoading || state is AuthInitial) {
             return const Scaffold(
               body: Center(
@@ -78,6 +85,8 @@ class MyApp extends StatelessWidget {
             return const HomeScreen();
           }
 
+          // Стан AuthUnauthenticated або будь-який інший - показуємо екран авторизації
+          print('DEBUG: Main.dart - відображення екрану авторизації');
           return const AuthScreen();
         },
       ),

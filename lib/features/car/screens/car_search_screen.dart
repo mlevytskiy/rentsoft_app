@@ -128,12 +128,14 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildFilters(),
-          Expanded(child: _buildCarList()),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSearchBar(),
+            _buildFilters(),
+            Expanded(child: _buildCarList()),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

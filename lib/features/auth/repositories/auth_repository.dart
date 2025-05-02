@@ -116,4 +116,10 @@ class AuthRepository implements IAuthRepository {
     }
     return null;
   }
+
+  @override
+  Future<bool> hasValidToken() async {
+    final token = await _secureStorage.read(key: 'access_token');
+    return token != null && token.isNotEmpty;
+  }
 }

@@ -34,29 +34,52 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthCheckStatusEvent event,
     Emitter<AuthState> emit,
   ) async {
+    print('DEBUG: AuthBloc - початок _onCheckStatus');
     emit(AuthLoading());
     try {
       final repository = await _getRepository();
       final isLoggedIn = await repository.isLoggedIn();
+      print('DEBUG: AuthBloc - isLoggedIn: $isLoggedIn');
+      
       if (isLoggedIn) {
         // Get current user data from storage
         final user = await repository.getCurrentUser();
+        print('DEBUG: AuthBloc - user: ${user?.profile.name ?? "null"}');
+        
         if (user != null) {
+          print('DEBUG: AuthBloc - user found, isVerified: ${user.profile.isVerified}');
+          
+          // Додаткова перевірка - якщо вийшли з системи, але користувач залишився в кеші
+          // перевіряємо, чи є валідний токен
+          final hasToken = await repository.hasValidToken();
+          print('DEBUG: AuthBloc - hasValidToken: $hasToken');
+          
+          if (!hasToken) {
+            print('DEBUG: AuthBloc - token invalid, emitting AuthUnauthenticated');
+            emit(AuthUnauthenticated());
+            return;
+          }
+        
           // Перевіряємо, чи користувач пройшов верифікацію
           // Якщо верифікований - це існуючий користувач 
           // Якщо не верифікований - це новий користувач
           if (user.profile.isVerified) {
+            print('DEBUG: AuthBloc - emitting AuthAuthenticated.existingUser');
             emit(AuthAuthenticated.existingUser(user));
           } else {
+            print('DEBUG: AuthBloc - emitting AuthAuthenticated.newUser');
             emit(AuthAuthenticated.newUser(user));
           }
         } else {
+          print('DEBUG: AuthBloc - user null, emitting AuthUnauthenticated');
           emit(AuthUnauthenticated());
         }
       } else {
+        print('DEBUG: AuthBloc - not logged in, emitting AuthUnauthenticated');
         emit(AuthUnauthenticated());
       }
     } catch (e) {
+      print('DEBUG: AuthBloc - error: ${e.toString()}');
       emit(AuthFailure(e.toString()));
     }
   }
@@ -110,6 +133,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final repository = await _getRepository();
       await repository.logout();
+      
+      // Явно переводимо додаток в неавторизований стан
+      // без будь-яких додаткових прапорців для уникнення плутанини з isNewUser
+      print('DEBUG: Logging out - emitting AuthUnauthenticated');
       emit(AuthUnauthenticated());
     } catch (e) {
       emit(AuthFailure(e.toString()));

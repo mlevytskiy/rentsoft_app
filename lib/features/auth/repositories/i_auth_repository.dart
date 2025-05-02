@@ -17,6 +17,9 @@ abstract class IAuthRepository {
   /// Отримання токену доступу
   Future<String?> getToken();
   
+  /// Перевірка, чи є валідний токен доступу
+  Future<bool> hasValidToken();
+  
   /// Отримання поточного користувача
   Future<UserModel?> getCurrentUser();
 }

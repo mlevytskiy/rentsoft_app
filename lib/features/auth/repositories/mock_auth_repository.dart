@@ -85,7 +85,10 @@ class MockAuthRepository implements IAuthRepository {
   Future<void> logout() async {
     // Add a small delay for logout as well
     await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Видаляємо всі збережені дані користувача
     await _secureStorage.delete(key: 'access_token');
+    await _secureStorage.delete(key: 'user_data');
   }
   
   // Check if user is logged in
@@ -109,5 +112,12 @@ class MockAuthRepository implements IAuthRepository {
   @override
   Future<String?> getToken() async {
     return await _secureStorage.read(key: 'access_token');
+  }
+  
+  // Перевірка, чи є валідний токен
+  @override
+  Future<bool> hasValidToken() async {
+    final token = await _secureStorage.read(key: 'access_token');
+    return token != null && token.isNotEmpty;
   }
 }

@@ -69,7 +69,8 @@ class CarRepository implements ICarRepository {
       brand: data['brand'] ?? '',
       model: data['model'] ?? '',
       year: data['year'] ?? 2023,
-      imageUrl: data['imageUrl'] ?? 'https://via.placeholder.com/300',
+      // Використовуємо пустий рядок замість зовнішнього посилання
+      imageUrl: data['imageUrl'] ?? '',
       pricePerWeek: data['pricePerWeek'] ?? 0,
       fuelType: data['fuelType'] ?? 'Бензин',
       seats: data['seats'] ?? 5,

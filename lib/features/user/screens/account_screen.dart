@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rentsoft_app/features/auth/bloc/auth_bloc.dart';
+import 'package:rentsoft_app/features/auth/bloc/auth_event.dart';
+
 import '../../../core/di/service_locator.dart';
-import '../../../features/auth/bloc/auth_bloc.dart';
-import '../../../features/auth/bloc/auth_event.dart';
 import '../../../features/auth/repositories/mock_auth_repository.dart';
 import '../widgets/verification_status.dart';
 
@@ -16,23 +17,23 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   final _authRepository = getIt<MockAuthRepository>();
   bool _isEditing = false;
-  
+
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
-  
+
   String _firstName = '';
   String _lastName = '';
   String _email = '';
   bool _isVerified = false;
-  
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _initControllers();
   }
-  
+
   Future<void> _loadUserData() async {
     final user = await _authRepository.getCurrentUser();
     if (user != null) {
@@ -41,7 +42,7 @@ class _AccountScreenState extends State<AccountScreen> {
         _lastName = user.profile.surname;
         _email = user.email;
         _isVerified = user.profile.isVerified; // Використовуємо поле isVerified з profile
-        
+
         // Update controllers if already initialized
         _firstNameController.text = _firstName;
         _lastNameController.text = _lastName;
@@ -49,13 +50,13 @@ class _AccountScreenState extends State<AccountScreen> {
       });
     }
   }
-  
+
   void _initControllers() {
     _firstNameController = TextEditingController(text: _firstName);
     _lastNameController = TextEditingController(text: _lastName);
     _emailController = TextEditingController(text: _email);
   }
-  
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -156,7 +157,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     );
   }
-  
+
   Widget _buildUserAvatar() {
     return Center(
       child: Stack(
@@ -164,7 +165,12 @@ class _AccountScreenState extends State<AccountScreen> {
           CircleAvatar(
             radius: 50,
             backgroundColor: Colors.grey.shade300,
-            backgroundImage: const NetworkImage('https://via.placeholder.com/100'),
+            // Використовуємо іконку замість мережевого зображення
+            child: const Icon(
+              Icons.person,
+              size: 50,
+              color: Color(0xFF3F5185),
+            ),
           ),
           Positioned(
             right: 0,
@@ -187,7 +193,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     );
   }
-  
+
   Widget _buildEditButton() {
     return SizedBox(
       width: double.infinity,
@@ -216,7 +222,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     );
   }
-  
+
   Widget _buildLogoutButton({
     required String label,
     required Color color,
@@ -241,9 +247,29 @@ class _AccountScreenState extends State<AccountScreen> {
                     backgroundColor: color,
                     foregroundColor: Colors.white, // Setting text color to white
                   ),
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    context.read<AuthBloc>().add(AuthLogoutEvent());
+                  onPressed: () async {
+                    Navigator.of(ctx).pop(); // Закриваємо діалог
+                    
+                    // Викликаємо ЛИШЕ метод logout з репозиторію напряму,
+                    // без виклику події AuthLogoutEvent
+                    print('DEBUG: AccountScreen - прямий виклик logout з репозиторію');
+                    await _authRepository.logout();
+                    
+                    // Додаємо подію AuthCheckStatusEvent замість AuthLogoutEvent
+                    // Це змусить блок перевірити стан авторизації заново
+                    print('DEBUG: AccountScreen - надсилаємо подію AuthCheckStatusEvent');
+                    if (context.mounted) {
+                      context.read<AuthBloc>().add(AuthCheckStatusEvent());
+                      
+                      // Додаємо затримку для обробки події
+                      await Future.delayed(const Duration(milliseconds: 300));
+                      
+                      // Також додаємо явну навігацію на екран авторизації
+                      if (context.mounted) {
+                        print('DEBUG: AccountScreen - явна навігація на екран логіну');
+                        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                      }
+                    }
                   },
                   child: const Text('Вийти'),
                 ),
@@ -266,7 +292,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     );
   }
-  
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -325,7 +351,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     );
   }
-  
+
   void _saveChanges() async {
     setState(() {
       _firstName = _firstNameController.text;
@@ -333,10 +359,10 @@ class _AccountScreenState extends State<AccountScreen> {
       _email = _emailController.text;
       _isEditing = false;
     });
-    
+
     // Note: In a real app, we would update these values in the repository
     // For now, we're just updating the UI
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Дані успішно оновлено')),
     );
