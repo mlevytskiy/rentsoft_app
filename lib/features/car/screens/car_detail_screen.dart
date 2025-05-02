@@ -84,13 +84,13 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildCarInfoSection(),
-                    const Divider(height: 32),
+                    const Divider(height: 16),
                     _buildRentalTypeSection(),
-                    const Divider(height: 32),
+                    const Divider(height: 16),
                     _buildPaymentSection(),
-                    const Divider(height: 32),
+                    const Divider(height: 16),
                     _buildRentalPeriodSection(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
                     _buildPriceAndRentButton(),
                   ],
                 ),
@@ -114,7 +114,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return Stack(
       children: [
         SizedBox(
-          height: 220,
+          height: 147,
           child: Row(
             children: [
               Expanded(
@@ -184,7 +184,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         // Car Park Information
         Positioned(
           top: 8.0,
-          left: 8.0,
+          right: 8.0,
           child: _fleetMode == FleetMode.all
             ? GestureDetector(
                 onTap: () {
@@ -193,29 +193,25 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
                       Text(
                         widget.car.carPark,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
+                          fontSize: 13,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
-                        Icons.info_outline,
+                      Icon(
+                        _showCarParkContacts ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                         color: Colors.white,
                         size: 16,
                       ),
@@ -228,11 +224,11 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         // Car Park Contact Details popup
         if (_showCarParkContacts && carParkInfo != null)
           Positioned(
-            top: 50,
-            left: 8,
+            top: 40,
+            right: 8,
             child: Container(
-              width: 280,
-              padding: const EdgeInsets.all(12),
+              width: 250,
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
@@ -248,25 +244,26 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, size: 18),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.location_on, size: 16),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           carParkInfo['address'] ?? 'No address',
-                          style: const TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.phone, size: 18),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.phone, size: 16),
+                      const SizedBox(width: 6),
                       Text(
                         carParkInfo['phone'] ?? 'No phone',
-                        style: const TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ],
                   ),
@@ -289,10 +286,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 4,
           children: [
             _buildSpecChip(Icons.directions_car, 'Седан'),
             _buildSpecChip(Icons.airline_seat_recline_normal, '${widget.car.seats}'),
@@ -312,12 +309,15 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return Chip(
       backgroundColor: Colors.grey.shade200,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(20),
       ),
-      avatar: Icon(icon, size: 18),
+      avatar: Icon(icon, size: 16),
       label: Text(label),
-      labelStyle: const TextStyle(fontSize: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      labelStyle: const TextStyle(fontSize: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: -2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -332,17 +332,74 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
-        Row(
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 6, 
+          runSpacing: 4,
           children: [
             _buildSelectionChip('Тижнева', 'Тижнева'),
-            const SizedBox(width: 8),
             _buildSelectionChip('Подобова', 'Подобова'),
-            const SizedBox(width: 8),
             _buildSelectionChip('Погодинна', 'Погодинна'),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildCompactSelectionChip(String label, String value) {
+    final isSelected = value == selectedRentalType || value == selectedPaymentType;
+
+    return FilterChip(
+      selected: isSelected,
+      backgroundColor: Colors.grey.shade200,
+      selectedColor: const Color(0xFFD7DDF3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      label: Text(label),
+      labelStyle: const TextStyle(fontSize: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      onSelected: (selected) {
+        setState(() {
+          if (value == 'Тижнева' || value == 'Подобова' || value == 'Погодинна') {
+            selectedRentalType = value;
+          }
+        });
+      },
+      showCheckmark: false,
+    );
+  }
+
+  Widget _buildSelectionChip(String label, String value, {bool hasIcon = false, IconData? icon}) {
+    final isSelected = value == selectedRentalType || value == selectedPaymentType;
+
+    return FilterChip(
+      selected: isSelected,
+      backgroundColor: Colors.grey.shade200,
+      selectedColor: Colors.grey.shade300,
+      showCheckmark: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      avatar: hasIcon && icon != null ? Icon(icon, size: 14) : null,
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      labelStyle: const TextStyle(fontSize: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: -2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      onSelected: (selected) {
+        setState(() {
+          if (value == 'Тижнева' || value == 'Подобова' || value == 'Погодинна') {
+            selectedRentalType = value;
+          } else {
+            selectedPaymentType = value;
+          }
+        });
+      },
     );
   }
 
@@ -363,41 +420,32 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
             Icon(Icons.info_outline, color: Colors.grey.shade600, size: 20),
           ],
         ),
-        const SizedBox(height: 16),
-        Row(
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
           children: [
-            _buildSelectionChip('Щотижнево', 'Щотижнево', hasIcon: true, icon: Icons.update),
-            const SizedBox(width: 8),
-            _buildSelectionChip('Застава', 'Застава', hasIcon: true, icon: Icons.shield),
+            _buildPaymentInfoChip('Щотижнево', Icons.update),
+            _buildPaymentInfoChip('Застава', Icons.shield),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildSelectionChip(String label, String value, {bool hasIcon = false, IconData? icon}) {
-    final isSelected = value == selectedRentalType || value == selectedPaymentType;
-
-    return FilterChip(
-      selected: isSelected,
+  Widget _buildPaymentInfoChip(String label, IconData icon) {
+    return Chip(
       backgroundColor: Colors.grey.shade200,
-      selectedColor: Colors.grey.shade300,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(20),
       ),
-      avatar: hasIcon && icon != null ? Icon(icon, size: 18) : null,
+      avatar: Icon(icon, size: 16),
       label: Text(label),
-      labelStyle: const TextStyle(fontSize: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      onSelected: (selected) {
-        setState(() {
-          if (value == 'Тижнева' || value == 'Подобова' || value == 'Погодинна') {
-            selectedRentalType = value;
-          } else {
-            selectedPaymentType = value;
-          }
-        });
-      },
+      labelStyle: const TextStyle(fontSize: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: -2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -412,34 +460,39 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                const Icon(Icons.arrow_outward, size: 16, color: Colors.blue),
-                const SizedBox(width: 8),
+                const Icon(Icons.arrow_outward, size: 14, color: Colors.blue),
+                const SizedBox(width: 4),
                 Text(
                   _formatDate(startDate),
-                  style: const TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
             TextButton(
               onPressed: _showDateTimePicker,
-              child: const Text('Змінити'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Змінити', style: TextStyle(fontSize: 12)),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 2),
         Row(
           children: [
-            const Icon(Icons.arrow_downward, size: 16, color: Colors.blue),
-            const SizedBox(width: 8),
+            const Icon(Icons.arrow_downward, size: 14, color: Colors.blue),
+            const SizedBox(width: 4),
             Text(
               _formatDate(endDate),
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 14),
             ),
           ],
         ),
@@ -448,56 +501,65 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Widget _buildPriceAndRentButton() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      alignment: Alignment.centerRight,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: DefaultTextStyle.of(context).style,
-                children: [
-                  const WidgetSpan(
-                    child: Text('₴', style: TextStyle(fontSize: 20)),
-                    alignment: PlaceholderAlignment.middle,
-                  ),
-                  TextSpan(
-                    text: ' ${widget.car.pricePerWeek}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+        // Price section
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: DefaultTextStyle.of(context).style,
+                  children: [
+                    const WidgetSpan(
+                      child: Text('₴', style: TextStyle(fontSize: 18)),
+                      alignment: PlaceholderAlignment.middle,
                     ),
-                  ),
-                ],
+                    TextSpan(
+                      text: ' ${widget.car.pricePerWeek}',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Text(
-              '/тиждень',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
+              Text(
+                '/тиждень',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        
+        // Button section
         _isLoading
             ? const SizedBox(
-                height: 48,
-                width: 48,
-                child: CircularProgressIndicator(),
+                height: 36,
+                width: 36,
+                child: CircularProgressIndicator(strokeWidth: 3),
               )
             : ElevatedButton(
                 onPressed: _isBooked ? _cancelBooking : _bookCar,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isBooked ? Colors.red.shade700 : const Color(0xFF3F5185),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Text(_isBooked ? 'Відмінити бронювання' : 'Орендувати'),
+                child: Text(
+                  _isBooked ? 'Відмінити бронювання' : 'Орендувати',
+                  style: const TextStyle(fontSize: 14),
+                ),
               ),
       ],
     );
