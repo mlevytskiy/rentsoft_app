@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../../core/services/scenario_service.dart';
 import '../models/car_model.dart';
 import '../services/car_service.dart'; // Import CarService
 
@@ -16,6 +18,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   // Selected rental period dates
   DateTime? startDate;
   DateTime? endDate;
+  
+  // Scenario service для перевірки режиму автопарків
+  final _scenarioService = getIt<ScenarioService>();
+  FleetMode _fleetMode = FleetMode.all;
 
   // Selected rental options
   String selectedRentalType = 'Тижнева'; // Default rental type
@@ -43,6 +49,17 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     // Check if car is already booked
     final carService = CarService();
     _isBooked = carService.isCarBooked(widget.car.id);
+    
+    // Завантажуємо режим відображення автопарків
+    _loadFleetMode();
+  }
+  
+  // Завантаження режиму відображення автопарків
+  Future<void> _loadFleetMode() async {
+    final fleetMode = await _scenarioService.getFleetMode();
+    setState(() {
+      _fleetMode = fleetMode;
+    });
   }
 
   @override
@@ -122,20 +139,39 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '+6 фото',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _showCarParkContacts = !_showCarParkContacts;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
                           ),
+                          alignment: Alignment.center,
+                          // Показуємо кнопку інформації про автопарк тільки коли всі автопарки доступні
+                          child: _fleetMode == FleetMode.all 
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _showCarParkContacts ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                      color: Colors.black54,
+                                    ),
+                                    const Text(
+                                      'Контакти',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : const Icon(
+                                  Icons.photo,
+                                  color: Colors.black54,
+                                ),
                         ),
                       ),
                     ),
@@ -149,43 +185,45 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         Positioned(
           top: 8.0,
           left: 8.0,
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _showCarParkContacts = !_showCarParkContacts;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_on,
-                    color: Colors.white,
-                    size: 16,
+          child: _fleetMode == FleetMode.all
+            ? GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showCarParkContacts = !_showCarParkContacts;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.car.carPark,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        widget.car.carPark,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.info_outline,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ],
-              ),
-            ),
-          ),
+                ),
+              )
+            : const SizedBox(),
         ),
         // Car Park Contact Details popup
         if (_showCarParkContacts && carParkInfo != null)
@@ -545,12 +583,19 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   void _showBookingConfirmationDialog() {
+    String confirmationText = 'Автомобіль заброньовано за Вами.\nНіхто інший його зараз забронювати не зможе.';
+    
+    // Додаємо інформацію про автопарк тільки якщо всі автопарки доступні
+    if (_fleetMode == FleetMode.all) {
+      confirmationText += '\nЧекаємо підтвердження від ${widget.car.carPark}.';
+    }
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Автомобіль заброньовано'),
         content: Text(
-          'Автомобіль заброньовано за Вами.\nНіхто інший його зараз забронювати не зможе.\nЧекаємо підтвердження від ${widget.car.carPark}.',
+          confirmationText,
           style: const TextStyle(
             fontSize: 16.0, // Larger font size
             color: Color(0xFF333333), // Darker text color

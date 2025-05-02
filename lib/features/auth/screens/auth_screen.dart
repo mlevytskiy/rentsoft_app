@@ -5,6 +5,7 @@ import 'package:rentsoft_app/features/home/screens/home_screen.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/services/api_config_service.dart';
+import '../../../core/services/scenario_service.dart';
 import '../../secret/screens/secret_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -19,7 +20,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -27,10 +28,12 @@ class _AuthScreenState extends State<AuthScreen> {
   final _surnameController = TextEditingController();
   final _apiConfigService = ApiConfigService();
   final _apiClient = getIt<ApiClient>();
+  final _scenarioService = getIt<ScenarioService>();
 
   bool _isLogin = true;
   bool _isPasswordVisible = false;
   bool _showSecretButton = false; // Контролює видимість жовтої кнопки
+  FleetMode _fleetMode = FleetMode.all; // За замовчуванням показуємо всі автопарки
 
   // Для відстеження послідовних натискань
   final List<DateTime> _tapTimestamps = [];
@@ -38,13 +41,49 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    // Реєструємо спостерігач за життєвим циклом
+    WidgetsBinding.instance.addObserver(this);
     _refreshConfiguration();
+    _loadFleetMode();
   }
 
+  @override
+  void dispose() {
+    // Скасовуємо реєстрацію спостерігача
+    WidgetsBinding.instance.removeObserver(this);
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    _surnameController.dispose();
+    super.dispose();
+  }
+
+  // Додано метод життєвого циклу для оновлення при поверненні на екран
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Викликається при зміні стану життєвого циклу додатка
+    super.didChangeAppLifecycleState(state);
+    
+    if (state == AppLifecycleState.resumed) {
+      // Якщо додаток відновлено, оновлюємо налаштування
+      _loadFleetMode();
+    }
+  }
+
+  // Додано метод для реагування на зміни маршрутів Flutter
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _refreshConfiguration();
+    // Оновлюємо при кожній зміні залежностей (включає повернення на екран)
+    _loadFleetMode();
+    print('[AuthScreen] Оновлюємо режим відображення при зміні залежностей');
+  }
+
+  @override
+  void didUpdateWidget(covariant AuthScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadFleetMode(); // Оновлюємо режим відображення при поверненні на екран
   }
 
   // Оновлює конфігурацію API при показі екрану
@@ -130,13 +169,20 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _nameController.dispose();
-    _surnameController.dispose();
-    super.dispose();
+  // Завантаження поточного режиму відображення автопарків
+  Future<void> _loadFleetMode() async {
+    if (!mounted) return; // Перевіряємо, чи віджет ще в дереві
+
+    final fleetMode = await _scenarioService.getFleetMode();
+    
+    // Виводимо режим для дебагу
+    print('[AuthScreen] Поточний режим автопарків: $fleetMode');
+    
+    if (mounted) {
+      setState(() {
+        _fleetMode = fleetMode;
+      });
+    }
   }
 
   @override
@@ -194,26 +240,67 @@ class _AuthScreenState extends State<AuthScreen> {
                         // Title and subtitle in the center
                         Center(
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              GestureDetector(
-                                onTap: _handleTitleTap,
-                                child: const Text(
-                                  'RentSoft',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
+                              // Прибрано логотип, як було до змін
+                              
+                              // Заголовок залежно від режиму флоту
+                              if (_fleetMode == FleetMode.all) ...[
+                                // Стандартний заголовок для всіх автопарків
+                                GestureDetector(
+                                  onTap: _handleTitleTap,
+                                  child: const Text(
+                                    'RentSoft',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const Text(
-                                'Оренда машин в Україні',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: Colors.black87,
+                                const Text(
+                                  'Оренда машин в Україні',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    color: Colors.black87,
+                                  ),
                                 ),
-                              ),
+                              ] else ...[
+                                // Заголовок для одного автопарку
+                                GestureDetector(
+                                  onTap: _handleTitleTap,
+                                  child: Text(
+                                    _scenarioService.fleetName,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1A1B21),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Оренда машин',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF44464F),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _scenarioService.fleetAddress,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Color(0xFF44464F),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -239,12 +326,19 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(width: 16),
                               _showSecretButton
                                   ? ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.of(context).push(
+                                      onPressed: () async {
+                                        // Відкриваємо Secret Screen з очікуванням завершення
+                                        await Navigator.of(context).push(
                                           MaterialPageRoute(
                                             builder: (context) => const SecretScreen(),
                                           ),
                                         );
+                                        
+                                        // Оновлюємо дані після повернення з Secret Screen
+                                        if (mounted) {
+                                          await _loadFleetMode();
+                                          print('[AuthScreen] Оновлено режим після повернення з Secret Screen');
+                                        }
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.amber,

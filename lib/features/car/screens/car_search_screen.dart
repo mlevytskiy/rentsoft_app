@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../../core/services/scenario_service.dart';
 import '../models/car_model.dart';
 import '../services/car_service.dart';
 import 'car_detail_screen.dart';
@@ -14,9 +16,11 @@ class CarSearchScreen extends StatefulWidget {
 class _CarSearchScreenState extends State<CarSearchScreen> {
   final _searchController = TextEditingController();
   final _carService = CarService();
+  final _scenarioService = getIt<ScenarioService>();
   List<Car> _cars = [];
   bool _isLoading = true;
   String? _error;
+  FleetMode _fleetMode = FleetMode.all;
 
   // Filter states
   RangeValues _priceRange = const RangeValues(1500, 4000);
@@ -64,6 +68,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   @override
   void initState() {
     super.initState();
+    _loadFleetMode();
     _loadCars();
   }
 
@@ -125,6 +130,19 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     }
   }
 
+  // Завантажуємо поточний режим відображення автопарків
+  Future<void> _loadFleetMode() async {
+    final fleetMode = await _scenarioService.getFleetMode();
+    setState(() {
+      _fleetMode = fleetMode;
+      
+      // Якщо режим одного автопарку, встановлюємо фільтр автоматично
+      if (_fleetMode == FleetMode.single) {
+        _selectedCarPark = 'Автопарк 1';
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,18 +195,19 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   }
 
   Widget _buildFilters() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
-      child: Wrap(
-        spacing: 2.0,
-        runSpacing: 2.0,
-        alignment: WrapAlignment.start,
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          _buildFilterChip('₴ Ціна', _showPriceFilterDialog),
-          _buildFilterChip('К-ть місць', _showSeatsFilterDialog),
-          _buildFilterChip('Марка', _showBrandFilterDialog),
-          _buildFilterChip('Паливо', _showFuelTypeFilterDialog),
-          _buildFilterChip('Автопарк', _showCarParkFilterDialog),
+          _buildFilterChip('Ціна', () => _showPriceFilterDialog()),
+          _buildFilterChip('Місця', () => _showSeatsFilterDialog()),
+          _buildFilterChip('Марка', () => _showBrandFilterDialog()),
+          _buildFilterChip('Паливо', () => _showFuelTypeFilterDialog()),
+          // Показуємо фільтр автопарків тільки в режимі "всі автопарки"
+          if (_fleetMode == FleetMode.all)
+            _buildFilterChip('Автопарк', () => _showCarParkFilterDialog()),
         ],
       ),
     );
@@ -578,10 +597,16 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
 
   Widget _buildCarCard(Car car) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: () async {
-          final result = await Navigator.of(context, rootNavigator: true).push(
+          // Navigation to details screen
+          final result = await Navigator.push(
+            context,
             MaterialPageRoute(
               fullscreenDialog: true,
               builder: (context) => CarDetailScreen(car: car),
@@ -622,21 +647,23 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      car.carPark,
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                // Показуємо назву автопарку тільки в режимі "всі автопарки"
+                if (_fleetMode == FleetMode.all)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        car.carPark,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             Padding(
