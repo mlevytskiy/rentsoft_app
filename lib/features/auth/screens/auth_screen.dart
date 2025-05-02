@@ -207,7 +207,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                               ),
                               const Text(
-                                'Тут ви можете орендувати машину',
+                                'Оренда машин в Україні',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 22,

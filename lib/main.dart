@@ -7,7 +7,7 @@ import 'features/auth/bloc/auth_event.dart';
 import 'features/auth/bloc/auth_state.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/home_screen.dart';
-import 'features/auth/screens/verification_screen.dart'; // Added import for VerificationScreen
+import 'features/auth/screens/verification_screen.dart';
 
 // Global navigator key for accessing navigation context from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

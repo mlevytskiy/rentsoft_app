@@ -94,8 +94,13 @@ class MockAuthRepository implements IAuthRepository {
   // Check if user is logged in
   @override
   Future<bool> isLoggedIn() async {
+    // Перевіряємо наявність токену ТА дійсного користувача
     final token = await _secureStorage.read(key: 'access_token');
-    return token != null;
+    final userJson = await _secureStorage.read(key: 'user_data');
+    
+    // iOS fix: Переконуємось, що додаток завжди стартує з екрану логіну
+    // якщо немає валідних даних користувача
+    return token != null && userJson != null;
   }
   
   // Get authenticated user data

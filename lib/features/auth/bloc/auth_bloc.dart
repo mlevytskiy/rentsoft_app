@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../core/di/service_locator.dart';
 import '../../../core/services/api_config_service.dart';
+import '../../../core/services/version_service.dart';
 import '../repositories/i_auth_repository.dart';
 import '../repositories/mock_auth_repository.dart';
 import 'auth_event.dart';
@@ -9,6 +11,7 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final IAuthRepository _initialAuthRepository;
   final ApiConfigService _apiConfigService = getIt<ApiConfigService>();
+  final VersionService _versionService = getIt<VersionService>();
   
   AuthBloc(this._initialAuthRepository) : super(AuthInitial()) {
     on<AuthCheckStatusEvent>(_onCheckStatus);
@@ -37,6 +40,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     print('DEBUG: AuthBloc - початок _onCheckStatus');
     emit(AuthLoading());
     try {
+      // Перевіряємо, чи змінилася версія додатку
+      final hasVersionChanged = await _versionService.hasVersionChanged();
+      print('DEBUG: AuthBloc - версія змінилася: $hasVersionChanged');
+      
+      if (hasVersionChanged) {
+        // Якщо версія змінилася, оновлюємо збережену версію та відправляємо користувача на логін
+        await _versionService.updateSavedVersion();
+        print('DEBUG: AuthBloc - версію оновлено, перенаправляємо на логін');
+        emit(AuthUnauthenticated());
+        return;
+      }
+      
       final repository = await _getRepository();
       final isLoggedIn = await repository.isLoggedIn();
       print('DEBUG: AuthBloc - isLoggedIn: $isLoggedIn');

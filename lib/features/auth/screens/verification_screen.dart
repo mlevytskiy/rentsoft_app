@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import 'document_verification_screen.dart';
+import '../../home/screens/home_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final UserModel user;
@@ -316,8 +317,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
     );
   }
 
-  // Перехід на головний екран без верифікації
+  // Пропустити верифікацію і перейти на головний екран
   void _skipVerification() {
-    Navigator.of(context).pop();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => const HomeScreen(),
+      ),
+    );
   }
 }

@@ -4,12 +4,21 @@ import '../../features/auth/repositories/auth_repository.dart';
 import '../../features/auth/repositories/mock_auth_repository.dart';
 import '../api/api_client.dart';
 import '../services/api_config_service.dart';
+import '../services/version_service.dart';
 
 final getIt = GetIt.instance;
 
 Future<void> setupDependencies() async {
   // Services - реєструємо сервіси
-  getIt.registerLazySingleton<ApiConfigService>(() => ApiConfigService());
+  final apiConfigService = ApiConfigService();
+  getIt.registerSingleton<ApiConfigService>(apiConfigService);
+  
+  // Сервіс для роботи з версіями
+  final versionService = VersionService();
+  getIt.registerSingleton<VersionService>(versionService);
+
+  // Отримуємо конфігурацію API та перевіряємо режим
+  final isOfflineMode = await apiConfigService.isOfflineMode();
   
   // API Client
   getIt.registerLazySingleton<ApiClient>(() => ApiClient());
@@ -19,9 +28,6 @@ Future<void> setupDependencies() async {
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepository(getIt<ApiClient>()));
   
   // BLoCs - AuthBloc автоматично вибере правильний репозиторій
-  final apiConfigService = getIt<ApiConfigService>();
-  final isOfflineMode = await apiConfigService.isOfflineMode();
-  
   // При створенні блоку передаємо репозиторій за замовчуванням,
   // але в подальшому блок сам динамічно перевірятиме режим
   getIt.registerFactory<AuthBloc>(() {
