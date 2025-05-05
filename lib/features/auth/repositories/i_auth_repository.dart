@@ -22,4 +22,7 @@ abstract class IAuthRepository {
   
   /// Отримання поточного користувача
   Future<UserModel?> getCurrentUser();
+  
+  /// Отримання повних даних користувача у вигляді Map для відображення
+  Future<Map<String, dynamic>?> getUserData();
 }

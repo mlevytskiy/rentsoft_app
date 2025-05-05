@@ -66,7 +66,7 @@ class UserModel {
   final bool? isStaff;
   final String? createdAt;
   final String? updatedAt;
-  final ProfileModel profile;
+  final ProfileModel? profile;
 
   UserModel({
     this.id,
@@ -77,7 +77,7 @@ class UserModel {
     this.isStaff,
     this.createdAt,
     this.updatedAt,
-    required this.profile,
+    this.profile,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -90,7 +90,9 @@ class UserModel {
       isStaff: json['is_staff'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
-      profile: ProfileModel.fromJson(json['profile']),
+      profile: json['profile'] != null
+          ? ProfileModel.fromJson(json['profile'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -109,8 +111,10 @@ class UserModel {
     if (updatedAt != null) json['updated_at'] = updatedAt;
     
     // Профіль також перевіряємо окремо
-    final profileJson = profile.toJson();
-    if (profileJson.isNotEmpty) json['profile'] = profileJson;
+    if (profile != null) {
+      final pJson = profile!.toJson();
+      if (pJson.isNotEmpty) json['profile'] = pJson;
+    }
     
     return json;
   }

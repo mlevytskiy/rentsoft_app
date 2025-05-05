@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/services/api_config_service.dart';
 import '../../../core/services/version_service.dart';
+import '../models/user_model.dart';
 import '../repositories/i_auth_repository.dart';
 import '../repositories/mock_auth_repository.dart';
 import 'auth_event.dart';
@@ -59,10 +60,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (isLoggedIn) {
         // Get current user data from storage
         final user = await repository.getCurrentUser();
-        print('DEBUG: AuthBloc - user: ${user?.profile.name ?? "null"}');
+        print('DEBUG: AuthBloc - user: ${user?.profile?.name ?? "null"}');
 
         if (user != null) {
-          print('DEBUG: AuthBloc - user found, isVerified: ${user.profile.isVerified}');
+          print('DEBUG: AuthBloc - user found, isVerified: ${user.profile?.isVerified ?? false}');
 
           // Додаткова перевірка - якщо вийшли з системи, але користувач залишився в кеші
           // перевіряємо, чи є валідний токен
@@ -78,7 +79,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           // Перевіряємо, чи користувач пройшов верифікацію
           // Якщо верифікований - це існуючий користувач
           // Якщо не верифікований - це новий користувач
-          if (user.profile.isVerified) {
+          if (user.profile?.isVerified ?? false) {
             print('DEBUG: AuthBloc - emitting AuthAuthenticated.existingUser');
             emit(AuthAuthenticated.existingUser(user));
           } else {
@@ -116,11 +117,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             isAdmin: true,
           );
           
+          // Отримуємо сирі дані для відображення
+          final Map<String, dynamic> responseData = await _extractUserData(user);
+          
+          // Додаємо інформацію про адміністратора для відображення
+          responseData['is_admin_mode'] = true;
+          
           // Зберігаємо відповідь для відображення на екрані
-          emit(AuthAdminResponse(user.toJson()));
+          emit(AuthAdminResponse(responseData));
         } catch (e) {
           // При помилці показуємо екран з відповіддю про помилку
-          emit(AuthAdminResponse({'error': e.toString(), 'details': 'Error connecting to admin endpoint'}));
+          emit(AuthAdminResponse({'error': e.toString(), 'details': 'Error connecting to auth endpoint'}));
         }
       } catch (e) {
         // Якщо виникла помилка з репозиторієм, все одно показуємо екран з помилкою
@@ -142,6 +149,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     }
   }
+  
+  // Допоміжний метод для отримання даних користувача в форматі для відображення
+  Future<Map<String, dynamic>> _extractUserData(UserModel user) async {
+    try {
+      // Спроба отримати збережені дані з secure storage
+      final repository = await _getRepository();
+      final userData = await repository.getUserData();
+      
+      if (userData != null) {
+        return userData;
+      }
+      
+      // Якщо даних немає, повертаємо базові дані користувача
+      return user.toJson();
+    } catch (e) {
+      // У випадку помилки, повертаємо базові дані користувача
+      return user.toJson();
+    }
+  }
 
   Future<void> _onRegister(
     AuthRegisterEvent event,
@@ -158,7 +184,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       // Відмічаємо, що користувач новий і потребує верифікації
       print('DEBUG: Реєстрація користувача - встановлюємо isNewUser=true');
-      print('DEBUG: Профіль користувача isVerified=${user.profile.isVerified}');
+      print('DEBUG: Профіль користувача isVerified=${user.profile?.isVerified ?? false}');
       // Явно використовуємо фабричний метод для нового користувача
       emit(AuthAuthenticated.newUser(user));
     } catch (e) {

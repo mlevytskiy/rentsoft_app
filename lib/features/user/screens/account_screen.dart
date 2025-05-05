@@ -39,10 +39,10 @@ class _AccountScreenState extends State<AccountScreen> {
     final user = await _authRepository.getCurrentUser();
     if (user != null) {
       setState(() {
-        _firstName = user.profile.name;
-        _lastName = user.profile.surname;
+        _firstName = user.profile?.name ?? "";
+        _lastName = user.profile?.surname ?? "";
         _email = user.email;
-        _verificationStatus = user.profile.verificationStatus;
+        _verificationStatus = user.profile?.verificationStatus ?? VerificationStatus.notVerified;
 
         // Update controllers if already initialized
         _firstNameController.text = _firstName;
@@ -252,21 +252,21 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   onPressed: () async {
                     Navigator.of(ctx).pop(); // Закриваємо діалог
-                    
+
                     // Викликаємо ЛИШЕ метод logout з репозиторію напряму,
                     // без виклику події AuthLogoutEvent
                     print('DEBUG: AccountScreen - прямий виклик logout з репозиторію');
                     await _authRepository.logout();
-                    
+
                     // Додаємо подію AuthCheckStatusEvent замість AuthLogoutEvent
                     // Це змусить блок перевірити стан авторизації заново
                     print('DEBUG: AccountScreen - надсилаємо подію AuthCheckStatusEvent');
                     if (context.mounted) {
                       context.read<AuthBloc>().add(AuthCheckStatusEvent());
-                      
+
                       // Додаємо затримку для обробки події
                       await Future.delayed(const Duration(milliseconds: 300));
-                      
+
                       // Також додаємо явну навігацію на екран авторизації
                       if (context.mounted) {
                         print('DEBUG: AccountScreen - явна навігація на екран логіну');

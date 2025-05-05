@@ -14,13 +14,20 @@ class AuthRepository implements IAuthRepository {
   @override
   Future<UserModel> login(String email, String password, {bool isAdmin = false}) async {
     try {
-      final endpoint = isAdmin ? '/auth/admin' : '/auth';
+      // Використовуємо один ендпоінт '/auth', але додаємо флаг адміна в дані запиту
+      final loginData = LoginRequest(
+        email: email, 
+        password: password,
+        isAdmin: isAdmin,  // Додаємо флаг в запит
+      ).toJson();
+      
       final response = await _apiClient.post(
-        endpoint,
-        data: LoginRequest(email: email, password: password).toJson(),
+        '/auth',  // Завжди використовуємо стандартний ендпоінт
+        data: loginData,
       );
       
-      if (response.statusCode == 201) {
+      // Сервер може повертати статус 200 або 201
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Extract tokens from headers or response
         final refreshToken = response.data['refresh'];
         final accessToken = response.data['access'];
@@ -31,8 +38,9 @@ class AuthRepository implements IAuthRepository {
         await _secureStorage.write(key: 'is_admin', value: isAdmin.toString());
         
         // Зберігаємо дані користувача для подальшого використання
-        final user = UserModel.fromJson(response.data);
-        await _secureStorage.write(key: 'user_data', value: response.data.toString());
+        final userJson = response.data['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userJson);
+        await _secureStorage.write(key: 'user_data', value: jsonEncode(response.data));
         
         // Return user data
         return user;
@@ -61,7 +69,7 @@ class AuthRepository implements IAuthRepository {
         data: registerData.toJson(),
       );
       
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Extract tokens from headers or response
         final refreshToken = response.data['refresh'];
         final accessToken = response.data['access'];
@@ -71,8 +79,9 @@ class AuthRepository implements IAuthRepository {
         await _secureStorage.write(key: 'access_token', value: accessToken);
         
         // Зберігаємо дані користувача для подальшого використання
-        final user = UserModel.fromJson(response.data);
-        await _secureStorage.write(key: 'user_data', value: response.data.toString());
+        final userJson = response.data['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userJson);
+        await _secureStorage.write(key: 'user_data', value: jsonEncode(response.data));
         
         // Return user data
         return user;
@@ -123,5 +132,60 @@ class AuthRepository implements IAuthRepository {
   Future<bool> hasValidToken() async {
     final token = await _secureStorage.read(key: 'access_token');
     return token != null && token.isNotEmpty;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getUserData() async {
+    try {
+      final userDataString = await _secureStorage.read(key: 'user_data');
+      if (userDataString != null) {
+        return json.decode(userDataString) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
+// Клас для запиту авторизації
+class LoginRequest {
+  final String email;
+  final String password;
+  final bool isAdmin;
+
+  LoginRequest({
+    required this.email,
+    required this.password,
+    this.isAdmin = false,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'email': email,
+      'password': password,
+      'is_admin': isAdmin, // Додаємо поле is_admin для серверної обробки
+    };
+  }
+}
+
+// Клас для запиту реєстрації
+class RegisterRequest {
+  final String email;
+  final String password;
+  final ProfileModel profile;
+
+  RegisterRequest({
+    required this.email,
+    required this.password,
+    required this.profile,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'email': email,
+      'password': password,
+      'profile': profile.toJson(),
+    };
   }
 }
