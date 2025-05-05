@@ -3,7 +3,7 @@ import '../models/user_model.dart';
 /// Інтерфейс для авторизаційних репозиторіїв
 abstract class IAuthRepository {
   /// Авторизація користувача
-  Future<UserModel> login(String email, String password);
+  Future<UserModel> login(String email, String password, {bool isAdmin = false});
 
   /// Реєстрація нового користувача
   Future<UserModel> register(String email, String password, String name, String surname);

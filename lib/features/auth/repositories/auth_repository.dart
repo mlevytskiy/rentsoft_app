@@ -12,10 +12,11 @@ class AuthRepository implements IAuthRepository {
   AuthRepository(this._apiClient);
 
   @override
-  Future<UserModel> login(String email, String password) async {
+  Future<UserModel> login(String email, String password, {bool isAdmin = false}) async {
     try {
+      final endpoint = isAdmin ? '/auth/admin' : '/auth';
       final response = await _apiClient.post(
-        '/auth',
+        endpoint,
         data: LoginRequest(email: email, password: password).toJson(),
       );
       
@@ -27,6 +28,7 @@ class AuthRepository implements IAuthRepository {
         // Store tokens securely
         await _secureStorage.write(key: 'refresh_token', value: refreshToken);
         await _secureStorage.write(key: 'access_token', value: accessToken);
+        await _secureStorage.write(key: 'is_admin', value: isAdmin.toString());
         
         // Зберігаємо дані користувача для подальшого використання
         final user = UserModel.fromJson(response.data);

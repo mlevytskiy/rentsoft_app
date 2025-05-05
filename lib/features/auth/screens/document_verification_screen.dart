@@ -10,7 +10,7 @@ import '../../home/screens/home_screen.dart';
 import '../../../core/di/service_locator.dart';
 
 class DocumentVerificationScreen extends StatefulWidget {
-  const DocumentVerificationScreen({Key? key}) : super(key: key);
+  const DocumentVerificationScreen({super.key});
 
   @override
   State<DocumentVerificationScreen> createState() => _DocumentVerificationScreenState();

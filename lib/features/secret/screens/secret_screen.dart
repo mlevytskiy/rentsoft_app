@@ -165,85 +165,88 @@ class _SecretScreenState extends State<SecretScreen> {
       appBar: AppBar(
         title: const Text('Секретний екран'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  '⚠️ Увага! Цей екран містить налаштування розробника. '
-                  'Змінюйте їх, тільки якщо ви знаєте, що робите.',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontWeight: FontWeight.bold,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '⚠️ Увага! Цей екран містить налаштування розробника. '
+                    'Змінюйте їх, тільки якщо ви знаєте, що робите.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // URL input field
-            TextField(
-              controller: _baseUrlController,
-              decoration: const InputDecoration(
-                labelText: 'Base URL',
-                hintText: 'Введіть URL API',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                // Якщо користувач змінив текст вручну, змінюємо опцію на "Custom"
-                if (_urlOptions.values.contains(value)) {
-                  setState(() {
-                    _selectedOption = _urlOptions.entries.firstWhere((entry) => entry.value == value).key;
-                  });
-                } else {
-                  setState(() {
-                    _selectedOption = UrlOption.custom;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Опції з радіо-кнопками
-            const Text(
-              'Виберіть попередньо налаштований URL:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            _buildOptionTile(UrlOption.localhost, 'Localhost'),
-            _buildOptionTile(UrlOption.ourPublic, 'Our Public URL'),
-            _buildOptionTile(UrlOption.withoutInternet, 'Without Internet'),
-            _buildOptionTile(UrlOption.custom, 'Custom'),
-
-            const SizedBox(height: 24),
-
-            // Сценарії використання
-            const Text(
-              'Виберіть сценарій використання:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            _buildScenarioTile(UsageScenario.allFleets, 'Всі автопарки'),
-            _buildScenarioTile(UsageScenario.singleFleet, 'Один автопарк'),
-
-            const Spacer(),
-
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveUrl,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              // URL input field
+              TextField(
+                controller: _baseUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Base URL',
+                  hintText: 'Введіть URL API',
+                  border: OutlineInputBorder(),
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Зберегти'),
+                onChanged: (value) {
+                  // Якщо користувач змінив текст вручну, змінюємо опцію на "Custom"
+                  if (_urlOptions.values.contains(value)) {
+                    setState(() {
+                      _selectedOption = _urlOptions.entries.firstWhere((entry) => entry.value == value).key;
+                    });
+                  } else {
+                    setState(() {
+                      _selectedOption = UrlOption.custom;
+                    });
+                  }
+                },
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              // Опції з радіо-кнопками
+              const Text(
+                'Виберіть попередньо налаштований URL:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              _buildOptionTile(UrlOption.localhost, 'Localhost'),
+              _buildOptionTile(UrlOption.ourPublic, 'Our Public URL'),
+              _buildOptionTile(UrlOption.withoutInternet, 'Without Internet'),
+              _buildOptionTile(UrlOption.custom, 'Custom'),
+
+              const SizedBox(height: 24),
+
+              // Сценарії використання
+              const Text(
+                'Виберіть сценарій використання:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              _buildScenarioTile(UsageScenario.allFleets, 'Всі автопарки'),
+              _buildScenarioTile(UsageScenario.singleFleet, 'Один автопарк'),
+
+              const SizedBox(height: 24),
+
+              // Save button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveUrl,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Зберегти'),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

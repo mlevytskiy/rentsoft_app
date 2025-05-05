@@ -11,6 +11,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../services/mock_data_service.dart';
+import 'response_view_screen.dart'; // Доданий імпорт нового екрану
 import 'verification_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -32,9 +33,9 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
 
   bool _isLogin = true;
   bool _isPasswordVisible = false;
+  bool _isAdminMode = false; // Додана змінна для адмін-режиму
   bool _showSecretButton = false; // Контролює видимість жовтої кнопки
-  FleetMode _fleetMode =
-      FleetMode.all; // За замовчуванням показуємо всі автопарки
+  FleetMode _fleetMode = FleetMode.all; // За замовчуванням показуємо всі автопарки
 
   // Для відстеження послідовних натискань
   final List<DateTime> _tapTimestamps = [];
@@ -75,10 +76,11 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _refreshConfiguration();
+    //TODO@m.levytskyi: this refresh brake admin functionality. That's why I commented it
+    // _refreshConfiguration();
     // Оновлюємо при кожній зміні залежностей (включає повернення на екран)
-    _loadFleetMode();
-    print('[AuthScreen] Оновлюємо режим відображення при зміні залежностей');
+    // _loadFleetMode();
+    // print('[AuthScreen] Оновлюємо режим відображення при зміні залежностей');
   }
 
   @override
@@ -92,8 +94,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     await _apiClient.refreshBaseUrl();
     // Перевіряємо режим після оновлення URL
     final isOfflineMode = await _apiConfigService.isOfflineMode();
-    print(
-        '[AuthScreen] 🌐 Режим роботи: ${isOfflineMode ? 'Без інтернету' : 'З інтернетом'}');
+    print('[AuthScreen] 🌐 Режим роботи: ${isOfflineMode ? 'Без інтернету' : 'З інтернетом'}');
 
     // Оновлюємо AuthBloc тільки якщо контекст доступний
     if (mounted && context.mounted) {
@@ -107,34 +108,33 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _submitForm() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      if (_isLogin) {
+        context.read<AuthBloc>().add(
+              AuthLoginEvent(
+                email: _emailController.text,
+                password: _passwordController.text,
+                isAdmin: _isAdminMode, // Передаємо флаг адміна
+              ),
+            );
+      } else {
+        // При реєстрації нового користувача
+        final email = _emailController.text.trim();
+        final password = _passwordController.text;
+        final name = _nameController.text.trim();
+        final surname = _surnameController.text.trim();
 
-    if (_isLogin) {
-      context.read<AuthBloc>().add(
-            AuthLoginEvent(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            ),
-          );
-    } else {
-      // При реєстрації нового користувача
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-      final name = _nameController.text.trim();
-      final surname = _surnameController.text.trim();
-
-      // Додаємо подію реєстрації в AuthBloc
-      context.read<AuthBloc>().add(
-            AuthRegisterEvent(
-              email: email,
-              password: password,
-              name: name,
-              surname: surname,
-            ),
-          );
+        // Додаємо подію реєстрації в AuthBloc
+        context.read<AuthBloc>().add(
+              AuthRegisterEvent(
+                email: email,
+                password: password,
+                name: name,
+                surname: surname,
+              ),
+            );
+      }
     }
   }
 
@@ -158,8 +158,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
     _tapTimestamps.add(now);
 
     // Залишаємо тільки натискання за останні 2 секунди
-    _tapTimestamps
-        .removeWhere((timestamp) => now.difference(timestamp).inSeconds > 2);
+    _tapTimestamps.removeWhere((timestamp) => now.difference(timestamp).inSeconds > 2);
 
     // Перевіряємо, чи було 5 натискань протягом останніх 2 секунд
     if (_tapTimestamps.length >= 5) {
@@ -191,41 +190,49 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      backgroundColor: Colors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            // Debug логування
-            print('DEBUG: AuthScreen отримав стан AuthAuthenticated');
-            print('DEBUG: state.isNewUser = ${state.isNewUser}');
-
-            // Перенаправляємо залежно від того, новий це користувач чи ні
-            if (state.isNewUser) {
-              print('DEBUG: Переходимо на екран верифікації');
-              // Новий користувач -> екран верифікації
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => VerificationScreen(user: state.user),
-                ),
-              );
-            } else {
-              print('DEBUG: Переходимо на головний екран');
-              // Існуючий користувач -> головний екран
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const HomeScreen(),
-                ),
-              );
-            }
+          if (state is AuthAdminResponse) {
+            // Перенаправляємо на екран з відповіддю сервера
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => ResponseViewScreen(responseData: state.responseData),
+              ),
+            );
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(content: Text(state.error)),
+            );
+          } else if (state is AuthAuthenticated && state.isNewUser) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => VerificationScreen(user: state.user),
+              ),
+            );
+          } else if (state is AuthAuthenticated && !state.isNewUser) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const HomeScreen(),
+              ),
             );
           }
         },
         builder: (context, state) {
           if (state is AuthLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF3F5185)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Завантаження...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            );
           }
 
           return SingleChildScrollView(
@@ -350,16 +357,14 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                                         // Відкриваємо Secret Screen з очікуванням завершення
                                         await Navigator.of(context).push(
                                           MaterialPageRoute(
-                                            builder: (context) =>
-                                                const SecretScreen(),
+                                            builder: (context) => const SecretScreen(),
                                           ),
                                         );
 
                                         // Оновлюємо дані після повернення з Secret Screen
                                         if (mounted) {
                                           await _loadFleetMode();
-                                          print(
-                                              '[AuthScreen] Оновлено режим після повернення з Secret Screen');
+                                          print('[AuthScreen] Оновлено режим після повернення з Secret Screen');
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
@@ -394,8 +399,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
                         }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                           return 'Please enter a valid email';
                         }
                         return null;
@@ -406,15 +410,14 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                     // Password Field
                     TextFormField(
                       controller: _passwordController,
+                      obscureText: !_isPasswordVisible,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'Пароль',
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
+                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                           ),
                           onPressed: () {
                             setState(() {
@@ -423,18 +426,43 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                           },
                         ),
                       ),
-                      obscureText: !_isPasswordVisible,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        if (!_isLogin && value.length < 8) {
-                          return 'Password must be at least 8 characters';
+                          return 'Будь ласка, введіть пароль';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Checkbox for admin mode - visible only in login mode
+                    if (_isLogin) ...[
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _isAdminMode,
+                            onChanged: (value) {
+                              setState(() {
+                                _isAdminMode = value ?? false;
+
+                                // Автоматично заповнюємо поля для адміна
+                                if (_isAdminMode) {
+                                  _emailController.text = 'admin@gmail.com';
+                                  _passwordController.text = 'Notfoundpass1!';
+                                } else {
+                                  // Якщо знято галочку, очищаємо поля
+                                  _emailController.text = '';
+                                  _passwordController.text = '';
+                                }
+                              });
+                            },
+                            activeColor: const Color(0xFF3F5185),
+                          ),
+                          const Text('Увійти як адміністратор'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
 
                     // Registration fields
                     if (!_isLogin) ...[
@@ -474,8 +502,7 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                     ElevatedButton(
                       onPressed: _submitForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFF3F5185), // Navy blue color
+                        backgroundColor: const Color(0xFF3F5185), // Navy blue color
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -494,12 +521,10 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
                     TextButton(
                       onPressed: _toggleAuthMode,
                       child: Text(
-                        _isLogin
-                            ? 'Немає акаунту? Зареєструватися'
-                            : 'Вже маєте акаунт? Увійти',
+                        _isLogin ? 'Немає акаунту? Зареєструватися' : 'Вже маєте акаунт? Увійти',
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
 
                     // Текст про політику конфіденційності - завжди видимий

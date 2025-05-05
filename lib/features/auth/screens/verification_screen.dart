@@ -6,7 +6,7 @@ import '../../home/screens/home_screen.dart';
 class VerificationScreen extends StatefulWidget {
   final UserModel user;
 
-  const VerificationScreen({Key? key, required this.user}) : super(key: key);
+  const VerificationScreen({super.key, required this.user});
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();

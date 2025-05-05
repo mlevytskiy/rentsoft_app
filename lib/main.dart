@@ -8,6 +8,7 @@ import 'features/auth/bloc/auth_state.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/auth/screens/verification_screen.dart';
+import 'features/auth/screens/response_view_screen.dart';
 
 // Global navigator key for accessing navigation context from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -83,6 +84,12 @@ class MyApp extends StatelessWidget {
             }
             // Існуючий користувач - на головний екран
             return const HomeScreen();
+          }
+          
+          // Обробка стану AuthAdminResponse - показуємо екран з відповіддю
+          if (state is AuthAdminResponse) {
+            print('DEBUG: Main.dart - відображення екрану з відповіддю адміністратора');
+            return ResponseViewScreen(responseData: state.responseData);
           }
 
           // Стан AuthUnauthenticated або будь-який інший - показуємо екран авторизації

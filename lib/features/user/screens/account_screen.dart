@@ -326,7 +326,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: const Color(0xFF3F5185)),
+                borderSide: const BorderSide(color: Color(0xFF3F5185)),
               ),
               contentPadding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
             ),

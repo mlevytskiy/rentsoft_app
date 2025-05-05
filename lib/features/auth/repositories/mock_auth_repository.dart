@@ -11,12 +11,15 @@ class MockAuthRepository implements IAuthRepository {
   
   // Login user
   @override
-  Future<UserModel> login(String email, String password) async {
+  Future<UserModel> login(String email, String password, {bool isAdmin = false}) async {
     // Add a 2-second delay to simulate network latency
     await Future.delayed(const Duration(seconds: 2));
     
     // Get user data from storage or create a new default user if none exists
     final userJson = await _secureStorage.read(key: 'user_data');
+    
+    // Save the admin flag
+    await _secureStorage.write(key: 'is_admin', value: isAdmin.toString());
     
     // If user exists in storage, use that data
     if (userJson != null) {
@@ -29,7 +32,7 @@ class MockAuthRepository implements IAuthRepository {
     } else {
       // Create a default profile if none exists
       final profile = ProfileModel(
-        name: 'Користувач', 
+        name: isAdmin ? 'Адміністратор' : 'Користувач', 
         surname: 'Тестовий',
         verificationStatus: VerificationStatus.verified, // Користувачі, які входять без реєстрації, вважаються верифікованими
       );
@@ -89,6 +92,7 @@ class MockAuthRepository implements IAuthRepository {
     // Видаляємо всі збережені дані користувача
     await _secureStorage.delete(key: 'access_token');
     await _secureStorage.delete(key: 'user_data');
+    await _secureStorage.delete(key: 'is_admin');
   }
   
   // Check if user is logged in

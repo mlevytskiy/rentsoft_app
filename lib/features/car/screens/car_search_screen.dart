@@ -563,9 +563,9 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Помилка завантаження даних',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(fontSize: 14)),

@@ -12,7 +12,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final IAuthRepository _initialAuthRepository;
   final ApiConfigService _apiConfigService = getIt<ApiConfigService>();
   final VersionService _versionService = getIt<VersionService>();
-  
+
   AuthBloc(this._initialAuthRepository) : super(AuthInitial()) {
     on<AuthCheckStatusEvent>(_onCheckStatus);
     on<AuthLoginEvent>(_onLogin);
@@ -23,12 +23,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // Отримуємо актуальний репозиторій на основі поточних налаштувань
   Future<IAuthRepository> _getRepository() async {
     final isOfflineMode = await _apiConfigService.isOfflineMode();
-    
+
     if (isOfflineMode) {
       // Якщо офлайн режим, використовуємо MockAuthRepository
       return getIt<MockAuthRepository>();
     }
-    
+
     // В іншому випадку використовуємо початковий репозиторій
     return _initialAuthRepository;
   }
@@ -43,7 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Перевіряємо, чи змінилася версія додатку
       final hasVersionChanged = await _versionService.hasVersionChanged();
       print('DEBUG: AuthBloc - версія змінилася: $hasVersionChanged');
-      
+
       if (hasVersionChanged) {
         // Якщо версія змінилася, оновлюємо збережену версію та відправляємо користувача на логін
         await _versionService.updateSavedVersion();
@@ -51,32 +51,32 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthUnauthenticated());
         return;
       }
-      
+
       final repository = await _getRepository();
       final isLoggedIn = await repository.isLoggedIn();
       print('DEBUG: AuthBloc - isLoggedIn: $isLoggedIn');
-      
+
       if (isLoggedIn) {
         // Get current user data from storage
         final user = await repository.getCurrentUser();
         print('DEBUG: AuthBloc - user: ${user?.profile.name ?? "null"}');
-        
+
         if (user != null) {
           print('DEBUG: AuthBloc - user found, isVerified: ${user.profile.isVerified}');
-          
+
           // Додаткова перевірка - якщо вийшли з системи, але користувач залишився в кеші
           // перевіряємо, чи є валідний токен
           final hasToken = await repository.hasValidToken();
           print('DEBUG: AuthBloc - hasValidToken: $hasToken');
-          
+
           if (!hasToken) {
             print('DEBUG: AuthBloc - token invalid, emitting AuthUnauthenticated');
             emit(AuthUnauthenticated());
             return;
           }
-        
+
           // Перевіряємо, чи користувач пройшов верифікацію
-          // Якщо верифікований - це існуючий користувач 
+          // Якщо верифікований - це існуючий користувач
           // Якщо не верифікований - це новий користувач
           if (user.profile.isVerified) {
             print('DEBUG: AuthBloc - emitting AuthAuthenticated.existingUser');
@@ -104,16 +104,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    try {
-      final repository = await _getRepository();
-      final user = await repository.login(
-        event.email,
-        event.password,
-      );
-      // Явно вказуємо, що користувач існуючий
-      emit(AuthAuthenticated.existingUser(user));
-    } catch (e) {
-      emit(AuthFailure(e.toString()));
+    
+    // Якщо це адмін-режим, завжди показуємо відповідь сервера
+    if (event.isAdmin) {
+      try {
+        final repository = await _getRepository();
+        try {
+          final user = await repository.login(
+            event.email,
+            event.password,
+            isAdmin: true,
+          );
+          
+          // Зберігаємо відповідь для відображення на екрані
+          emit(AuthAdminResponse(user.toJson()));
+        } catch (e) {
+          // При помилці показуємо екран з відповіддю про помилку
+          emit(AuthAdminResponse({'error': e.toString(), 'details': 'Error connecting to admin endpoint'}));
+        }
+      } catch (e) {
+        // Якщо виникла помилка з репозиторієм, все одно показуємо екран з помилкою
+        emit(AuthAdminResponse({'error': e.toString(), 'source': 'Repository initialization'}));
+      }
+    } else {
+      try {
+        // Стандартний вхід
+        final repository = await _getRepository();
+        final user = await repository.login(
+          event.email,
+          event.password,
+          isAdmin: false,
+        );
+        // Явно вказуємо, що користувач існуючий
+        emit(AuthAuthenticated.existingUser(user));
+      } catch (e) {
+        emit(AuthFailure(e.toString()));
+      }
     }
   }
 
@@ -148,7 +174,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final repository = await _getRepository();
       await repository.logout();
-      
+
       // Явно переводимо додаток в неавторизований стан
       // без будь-яких додаткових прапорців для уникнення плутанини з isNewUser
       print('DEBUG: Logging out - emitting AuthUnauthenticated');
