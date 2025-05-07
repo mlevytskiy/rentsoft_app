@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rentsoft_app/features/home/screens/home_screen.dart';
+import 'package:rentsoft_app/features/auth/screens/admin_confirmation_screen.dart';
+import 'package:rentsoft_app/features/user/screens/users_with_ads_screen.dart';
 
 class ResponseViewScreen extends StatelessWidget {
   final dynamic responseData;
+  final String? screenTitle;
+  final VoidCallback? onClose;
 
-  const ResponseViewScreen({super.key, required this.responseData});
+  const ResponseViewScreen({
+    super.key, 
+    required this.responseData,
+    this.screenTitle,
+    this.onClose,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Відповідь сервера'),
+        title: Text(screenTitle ?? 'Відповідь сервера'),
         backgroundColor: const Color(0xFF3F5185),
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -68,12 +77,54 @@ class ResponseViewScreen extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Navigate to the home screen
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
-                      ),
-                    );
+                    // Check if we have a custom close callback
+                    if (onClose != null) {
+                      // Закриваємо поточний екран і викликаємо callback
+                      Navigator.of(context).pop();
+                      onClose!();
+                      return;
+                    }
+                    
+                    // Standard navigation if no callback provided
+                    bool isAdminLoginSuccess = false;
+                    
+                    if (responseData is Map<String, dynamic>) {
+                      // Check for admin user in response data
+                      final user = responseData['user'] as Map<String, dynamic>?;
+                      
+                      if (user != null) {
+                        // If user exists and is admin (staff or superuser)
+                        final isStaff = user['is_staff'] as bool?;
+                        final isSuperuser = user['is_superuser'] as bool?;
+                        
+                        isAdminLoginSuccess = (isStaff == true || isSuperuser == true);
+                      }
+                    }
+                    
+                    // Navigate based on admin status
+                    if (isAdminLoginSuccess) {
+                      // Navigate to admin confirmation screen with response data
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const AdminConfirmationScreen(),
+                          settings: RouteSettings(arguments: responseData),
+                        ),
+                      );
+                    } else if (screenTitle == 'Список користувачів') {
+                      // Якщо це екран зі списком користувачів, переходимо на екран з оголошеннями
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const UsersWithAdsScreen(),
+                        ),
+                      );
+                    } else {
+                      // Navigate to the home screen
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const HomeScreen(),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3F5185),
@@ -132,7 +183,7 @@ class ResponseViewScreen extends StatelessWidget {
       });
       // Remove trailing comma
       if (result.endsWith(',\n')) {
-        result = result.substring(0, result.length - 2) + '\n';
+        result = '${result.substring(0, result.length - 2)}\n';
       }
       result += '}';
     } else if (json is List) {
@@ -151,7 +202,7 @@ class ResponseViewScreen extends StatelessWidget {
       }
       // Remove trailing comma
       if (result.endsWith(',\n')) {
-        result = result.substring(0, result.length - 2) + '\n';
+        result = '${result.substring(0, result.length - 2)}\n';
       }
       result += ']';
     } else {

@@ -12,8 +12,8 @@ enum UrlOption {
 
 // Enum для сценаріїв використання
 enum UsageScenario {
-  allFleets,     // Доступні всі автопарки
-  singleFleet,   // Тільки один автопарк
+  allFleets, // Доступні всі автопарки
+  singleFleet, // Тільки один автопарк
 }
 
 class SecretScreen extends StatefulWidget {
@@ -33,7 +33,7 @@ class _SecretScreenState extends State<SecretScreen> {
   // Мапа для зберігання URL для кожної опції
   final Map<UrlOption, String> _urlOptions = {
     UrlOption.localhost: 'http://localhost:8888/',
-    UrlOption.ourPublic: 'http://rentsoft.us-east-1.elasticbeanstalk.com/',
+    UrlOption.ourPublic: 'http://rentsoft-env-1.eba-xkfjndpj.us-east-1.elasticbeanstalk.com/api/',
     UrlOption.withoutInternet: 'no-internet',
   };
 
@@ -52,13 +52,13 @@ class _SecretScreenState extends State<SecretScreen> {
   // Завантажити збережений URL при ініціалізації
   Future<void> _loadSavedUrl() async {
     final baseUrl = await _apiConfigService.getBaseUrl();
-    
+
     // Спочатку спробуємо відновити збережену опцію URL
     final savedOption = await _apiConfigService.getSavedUrlOption();
-    
+
     // Завантажуємо збережений сценарій використання
     final savedScenario = await _apiConfigService.getSavedUsageScenario();
-    
+
     setState(() {
       _baseUrlController.text = baseUrl;
 
@@ -74,7 +74,7 @@ class _SecretScreenState extends State<SecretScreen> {
       } else {
         _selectedOption = UrlOption.custom;
       }
-      
+
       // Встановлюємо збережений сценарій використання, або за замовчуванням allFleets
       if (savedScenario != null) {
         _selectedScenario = UsageScenario.values.firstWhere(
@@ -126,10 +126,10 @@ class _SecretScreenState extends State<SecretScreen> {
       groupValue: _selectedOption,
       onChanged: (value) {
         if (value == null) return;
-        
+
         setState(() {
           _selectedOption = value;
-          
+
           // Якщо вибрано не Custom, оновити поле введення з відповідним URL
           if (value != UrlOption.custom) {
             _baseUrlController.text = _urlOptions[value]!;
@@ -138,16 +138,14 @@ class _SecretScreenState extends State<SecretScreen> {
       },
     );
   }
-  
+
   // Побудова Widget для сценарію використання
   Widget _buildScenarioTile(UsageScenario scenario, String title) {
     return RadioListTile<UsageScenario>(
       title: Text(title),
-      subtitle: Text(
-        scenario == UsageScenario.allFleets 
-            ? 'Користувач бачить всі доступні автопарки' 
-            : 'Додаток прив\'язаний до "Автопарку 1"'
-      ),
+      subtitle: Text(scenario == UsageScenario.allFleets
+          ? 'Користувач бачить всі доступні автопарки'
+          : 'Додаток прив\'язаний до "Автопарку 1"'),
       value: scenario,
       groupValue: _selectedScenario,
       onChanged: (value) {
@@ -239,9 +237,7 @@ class _SecretScreenState extends State<SecretScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Зберегти'),
+                  child: _isLoading ? const CircularProgressIndicator() : const Text('Зберегти'),
                 ),
               ),
               const SizedBox(height: 16),

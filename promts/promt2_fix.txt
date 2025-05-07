@@ -1,0 +1,122 @@
+Waiting for connection from debug service on Chrome...
+lib/core/services/car_service.dart:12:8: Error: Type 'Car' not found.
+  List<Car>? _cachedCars;
+       ^^^
+lib/core/services/car_service.dart:70:15: Error: Type 'Car' not found.
+  Future<List<Car>> getAllCars() async {
+              ^^^
+lib/core/services/car_service.dart:87:10: Error: Type 'Car' not found.
+  Future<Car?> getCarById(String id) async {
+         ^^^
+lib/core/services/car_service.dart:98:15: Error: Type 'Car' not found.
+  Future<List<Car>> searchCars(String query) async {
+              ^^^
+../libraries/remote_rent_repository/lib/src/repositories/car_repository.dart:10:15: Error: Type 'Car' not found.
+  Future<List<Car>> getCars() async {
+              ^^^
+../libraries/remote_rent_repository/lib/src/repositories/car_repository.dart:28:10: Error: Type 'Car' not found.
+  Future<Car?> getCarById(String id) async {
+         ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:10:14: Error: Type 'Car' not found.
+  final List<Car> _mockCars = [
+             ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:70:15: Error: Type 'Car' not found.
+  Future<List<Car>> getCars() async {
+              ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:78:10: Error: Type 'Car' not found.
+  Future<Car?> getCarById(String id) async {
+         ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:156:15: Error: Type 'Car' not found.
+  Future<List<Car>> getBookedCars() async {
+              ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:171:15: Error: Type 'Car' not found.
+  Future<List<Car>> getAvailableCars() async {
+              ^^^
+lib/features/car/screens/car_detail_screen.dart:21:3: Error: Type 'Car' not found.
+  Car? _car;
+  ^^^
+lib/features/car/screens/car_list_screen.dart:22:8: Error: Type 'Car' not found.
+  List<Car> _cars = [];
+       ^^^
+lib/core/services/car_service.dart:12:8: Error: 'Car' isn't a type.
+  List<Car>? _cachedCars;
+       ^^^
+lib/core/services/car_service.dart:114:18: Error: The getter 'brand' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'brand'.
+      return car.brand.toLowerCase().contains(normalizedQuery) ||
+                 ^^^^^
+lib/core/services/car_service.dart:115:18: Error: The getter 'model' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'model'.
+             car.model.toLowerCase().contains(normalizedQuery) ||
+                 ^^^^^
+lib/core/services/car_service.dart:116:18: Error: The getter 'fullName' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'fullName'.
+             car.fullName.toLowerCase().contains(normalizedQuery) ||
+                 ^^^^^^^^
+lib/core/services/car_service.dart:117:18: Error: The getter 'fuelType' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'fuelType'.
+             car.fuelType.toLowerCase().contains(normalizedQuery) ||
+                 ^^^^^^^^
+lib/core/services/car_service.dart:118:18: Error: The getter 'carPark' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'carPark'.
+             car.carPark.toLowerCase().contains(normalizedQuery) ||
+                 ^^^^^^^
+lib/core/services/car_service.dart:119:18: Error: The getter 'year' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'year'.
+             car.year.toString().contains(normalizedQuery);
+                 ^^^^
+../libraries/remote_rent_repository/lib/src/repositories/car_repository.dart:16:39: Error: The getter 'Car' isn't defined for the class 'CarRepository'.
+ - 'CarRepository' is from 'package:remote_rent_repository/src/repositories/car_repository.dart' ('../libraries/remote_rent_repository/lib/src/repositories/car_repository.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'Car'.
+        return carsJson.map((json) => Car.fromJson(json)).toList();
+                                      ^^^
+../libraries/remote_rent_repository/lib/src/repositories/car_repository.dart:33:16: Error: The getter 'Car' isn't defined for the class 'CarRepository'.
+ - 'CarRepository' is from 'package:remote_rent_repository/src/repositories/car_repository.dart' ('../libraries/remote_rent_repository/lib/src/repositories/car_repository.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'Car'.
+        return Car.fromJson(response.data);
+               ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:10:14: Error: 'Car' isn't a type.
+  final List<Car> _mockCars = [
+             ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:11:5: Error: Method not found: 'Car'.
+    Car(
+    ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:22:5: Error: Method not found: 'Car'.
+    Car(
+    ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:33:5: Error: Method not found: 'Car'.
+    Car(
+    ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:44:5: Error: Method not found: 'Car'.
+    Car(
+    ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:55:5: Error: Method not found: 'Car'.
+    Car(
+    ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:83:48: Error: The getter 'id' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'id'.
+      return _mockCars.firstWhere((car) => car.id == id);
+                                               ^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:158:16: Error: 'Car' isn't a type.
+    final List<Car> result = [];
+               ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:173:16: Error: 'Car' isn't a type.
+    final List<Car> allCars = await getCars();
+               ^^^
+../libraries/without_internet_rent_repository/lib/src/repositories/mock_car_repository.dart:175:62: Error: The getter 'id' isn't defined for the class 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'id'.
+    return allCars.where((car) => !bookedCarIds.contains(car.id)).toList();
+                                                             ^^
+lib/features/car/screens/car_detail_screen.dart:21:3: Error: 'Car' isn't a type.
+  Car? _car;
+  ^^^
+lib/features/car/screens/car_list_screen.dart:22:8: Error: 'Car' isn't a type.
+  List<Car> _cars = [];

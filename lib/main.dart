@@ -6,9 +6,9 @@ import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_event.dart';
 import 'features/auth/bloc/auth_state.dart';
 import 'features/auth/screens/auth_screen.dart';
-import 'features/home/screens/home_screen.dart';
-import 'features/auth/screens/verification_screen.dart';
 import 'features/auth/screens/response_view_screen.dart';
+import 'features/auth/screens/verification_screen.dart';
+import 'features/home/screens/home_screen.dart';
 
 // Global navigator key for accessing navigation context from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -16,12 +16,12 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 // Global variable to store the current tab index
 int currentTabIndex = 1; // Default to search tab (index 1)
 
-void main() async {  
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Очікуємо завершення ініціалізації залежностей
   await setupDependencies();
-  
+
   runApp(
     BlocProvider(
       create: (_) => getIt<AuthBloc>()..add(AuthCheckStatusEvent()),
@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
         },
         builder: (context, state) {
           print('DEBUG: BlocBuilder building with state=${state.runtimeType}');
-          
+
           if (state is AuthLoading || state is AuthInitial) {
             return const Scaffold(
               body: Center(
@@ -85,7 +85,7 @@ class MyApp extends StatelessWidget {
             // Існуючий користувач - на головний екран
             return const HomeScreen();
           }
-          
+
           // Обробка стану AuthAdminResponse - показуємо екран з відповіддю
           if (state is AuthAdminResponse) {
             print('DEBUG: Main.dart - відображення екрану з відповіддю адміністратора');

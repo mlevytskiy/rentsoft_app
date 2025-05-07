@@ -81,6 +81,7 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final profile = json['profile'];
     return UserModel(
       id: json['id'],
       email: json['email'],
@@ -90,8 +91,8 @@ class UserModel {
       isStaff: json['is_staff'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
-      profile: json['profile'] != null
-          ? ProfileModel.fromJson(json['profile'] as Map<String, dynamic>)
+      profile: profile != null && profile is Map<String, dynamic>
+          ? ProfileModel.fromJson(profile)
           : null,
     );
   }

@@ -1,0 +1,192 @@
+Waiting for connection from debug service on Chrome...
+lib/features/car/screens/car_detail_screen.dart:3:8: Error: Error when reading 'lib/core/di/service_locator.dart': No such file or directory
+import '../../../core/di/service_locator.dart';
+       ^
+lib/features/car/screens/car_detail_screen.dart:4:8: Error: Error when reading 'lib/core/services/scenario_service.dart': No such file or directory
+import '../../../core/services/scenario_service.dart';
+       ^
+lib/features/car/screens/car_detail_screen.dart:5:8: Error: Error when reading 'lib/features/car/models/car_model.dart': No such file or directory
+import '../models/car_model.dart';
+       ^
+lib/features/car/screens/car_detail_screen.dart:6:8: Error: Error when reading 'lib/features/car/services/car_service.dart': No such file or directory
+import '../services/car_service.dart'; // Import CarService
+       ^
+Error: Couldn't resolve the package 'rentsoft_app' in 'package:rentsoft_app/features/auth/models/user_model.dart'.
+lib/features/user/widgets/verification_status_widget.dart:2:8: Error: Not found: 'package:rentsoft_app/features/auth/models/user_model.dart'
+import 'package:rentsoft_app/features/auth/models/user_model.dart';
+       ^
+lib/features/car/screens/car_detail_screen.dart:9:9: Error: Type 'Car' not found.
+  final Car car;
+        ^^^
+lib/features/car/screens/car_detail_screen.dart:24:3: Error: Type 'FleetMode' not found.
+  FleetMode _fleetMode = FleetMode.all;
+  ^^^^^^^^^
+lib/features/user/widgets/verification_status_widget.dart:5:9: Error: Type 'VerificationStatus' not found.
+  final VerificationStatus status;
+        ^^^^^^^^^^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:23:34: Error: 'ScenarioService' isn't a type.
+  final _scenarioService = getIt<ScenarioService>();
+                                 ^^^^^^^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:23:28: Error: Method not found: 'getIt'.
+  final _scenarioService = getIt<ScenarioService>();
+                           ^^^^^
+lib/main.dart:45:33: Error: The argument type 'ICarRepository' can't be assigned to the parameter type 'AppService'.
+ - 'ICarRepository' is from 'package:any_rent_repository/src/repositories/i_car_repository.dart' ('../libraries/any_rent_repository/lib/src/repositories/i_car_repository.dart').
+ - 'AppService' is from 'package:app_auto/core/services/app_service.dart' ('lib/core/services/app_service.dart').
+  final carService = CarService(carRepository);
+                                ^
+lib/main.dart:85:9: Error: Type argument 'CarService' doesn't conform to the bound 'StateStreamableSource<Object?>' of the type variable 'T' on 'BlocProvider'.
+ - 'CarService' is from 'package:app_auto/core/services/car_service.dart' ('lib/core/services/car_service.dart').
+ - 'StateStreamableSource' is from 'package:bloc/src/bloc.dart' ('../../../.pub-cache/hosted/pub.dev/bloc-8.1.4/lib/src/bloc.dart').
+ - 'Object' is from 'dart:core'.
+Try changing type arguments so that they conform to the bounds.
+        BlocProvider<CarService>(
+        ^
+../../../.pub-cache/hosted/pub.dev/flutter_bloc-8.1.6/lib/src/bloc_provider.dart:34:20: Context: This is the type variable whose bound isn't conformed to.
+class BlocProvider<T extends StateStreamableSource<Object?>>
+                   ^
+lib/main.dart:103:26: Error: 'AuthLoading' isn't a type.
+            if (state is AuthLoading || state is AuthInitial) {
+                         ^^^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:9:9: Error: 'Car' isn't a type.
+  final Car car;
+        ^^^
+lib/features/car/screens/car_detail_screen.dart:24:3: Error: 'FleetMode' isn't a type.
+  FleetMode _fleetMode = FleetMode.all;
+  ^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:24:26: Error: Undefined name 'FleetMode'.
+  FleetMode _fleetMode = FleetMode.all;
+                         ^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:50:24: Error: The method 'CarService' isn't defined for the class '_CarDetailScreenState'.
+ - '_CarDetailScreenState' is from 'package:app_auto/features/car/screens/car_detail_screen.dart' ('lib/features/car/screens/car_detail_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'CarService'.
+    final carService = CarService();
+                       ^^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:154:48: Error: The getter 'FleetMode' isn't defined for the class '_CarDetailScreenState'.
+ - '_CarDetailScreenState' is from 'package:app_auto/features/car/screens/car_detail_screen.dart' ('lib/features/car/screens/car_detail_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'FleetMode'.
+                          child: _fleetMode == FleetMode.all 
+                                               ^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:188:32: Error: The getter 'FleetMode' isn't defined for the class '_CarDetailScreenState'.
+ - '_CarDetailScreenState' is from 'package:app_auto/features/car/screens/car_detail_screen.dart' ('lib/features/car/screens/car_detail_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'FleetMode'.
+          child: _fleetMode == FleetMode.all
+                               ^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:609:24: Error: The method 'CarService' isn't defined for the class '_CarDetailScreenState'.
+ - '_CarDetailScreenState' is from 'package:app_auto/features/car/screens/car_detail_screen.dart' ('lib/features/car/screens/car_detail_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'CarService'.
+    final carService = CarService();
+                       ^^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:630:24: Error: The method 'CarService' isn't defined for the class '_CarDetailScreenState'.
+ - '_CarDetailScreenState' is from 'package:app_auto/features/car/screens/car_detail_screen.dart' ('lib/features/car/screens/car_detail_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'CarService'.
+    final carService = CarService();
+                       ^^^^^^^^^^
+lib/features/car/screens/car_detail_screen.dart:651:23: Error: The getter 'FleetMode' isn't defined for the class '_CarDetailScreenState'.
+ - '_CarDetailScreenState' is from 'package:app_auto/features/car/screens/car_detail_screen.dart' ('lib/features/car/screens/car_detail_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'FleetMode'.
+    if (_fleetMode == FleetMode.all) {
+                      ^^^^^^^^^
+lib/core/config/app_router.dart:37:43: Error: No named parameter with the name 'carId'.
+          builder: (_) => CarDetailScreen(carId: carId),
+                                          ^^^^^
+lib/features/car/screens/car_detail_screen.dart:11:9: Context: Found this candidate, but the arguments don't match.
+  const CarDetailScreen({super.key, required this.car});
+        ^^^^^^^^^^^^^^^
+lib/features/user/widgets/verification_status_widget.dart:5:9: Error: 'VerificationStatus' isn't a type.
+  final VerificationStatus status;
+        ^^^^^^^^^^^^^^^^^^
+lib/features/user/widgets/verification_status_widget.dart:23:12: Error: Undefined name 'VerificationStatus'.
+      case VerificationStatus.verified:
+           ^^^^^^^^^^^^^^^^^^
+lib/features/user/widgets/verification_status_widget.dart:36:12: Error: Undefined name 'VerificationStatus'.
+      case VerificationStatus.pending:
+           ^^^^^^^^^^^^^^^^^^
+lib/features/user/widgets/verification_status_widget.dart:49:12: Error: Undefined name 'VerificationStatus'.
+      case VerificationStatus.notVerified:
+           ^^^^^^^^^^^^^^^^^^
+Unhandled exception:
+Unsupported operation: Unsupported invalid type InvalidType(<invalid>) (InvalidType).
+#0      throwUnsupportedInvalidType (package:dev_compiler/src/kernel/kernel_helpers.dart:13)
+#1      JSTypeRep.typeFor (package:dev_compiler/src/kernel/js_typerep.dart:83)
+#2      ProgramCompiler._emitIsExpression (package:dev_compiler/src/kernel/compiler.dart:6770)
+#3      ProgramCompiler.visitIsExpression (package:dev_compiler/src/kernel/compiler.dart:6757)
+#4      IsExpression.accept (package:kernel/ast.dart:7486)
+#5      ProgramCompiler._visitExpression (package:dev_compiler/src/kernel/compiler.dart:3925)
+#6      ProgramCompiler._visitTest (package:dev_compiler/src/kernel/compiler.dart:3916)
+#7      ProgramCompiler._visitTest.shortCircuit (package:dev_compiler/src/kernel/compiler.dart:3902)
+#8      ProgramCompiler._visitTest (package:dev_compiler/src/kernel/compiler.dart:3907)
+#9      ProgramCompiler.visitIfStatement (package:dev_compiler/src/kernel/compiler.dart:4585)
+#10     IfStatement.accept (package:kernel/ast.dart:10077)
+#11     ProgramCompiler._visitStatement (package:dev_compiler/src/kernel/compiler.dart:3834)
+#12     MappedIterable.elementAt (dart:_internal/iterable.dart:385)
+#13     ListIterator.moveNext (dart:_internal/iterable.dart:354)
+#14     new _GrowableList._ofEfficientLengthIterable (dart:core-patch/growable_array.dart:189)
+#15     new _GrowableList.of (dart:core-patch/growable_array.dart:150)
+#16     new List.of (dart:core-patch/array_patch.dart:39)
+#17     SetBase.toList (dart:collection/set.dart:119)
+#18     ProgramCompiler.visitBlock (package:dev_compiler/src/kernel/compiler.dart:4019)
+#19     Block.accept (package:kernel/ast.dart:9181)
+#20     ProgramCompiler._visitStatement (package:dev_compiler/src/kernel/compiler.dart:3834)
+#21     ProgramCompiler._emitFunctionScopedBody (package:dev_compiler/src/kernel/compiler.dart:3867)
+#22     ProgramCompiler._emitSyncFunctionBody.<anonymous closure> (package:dev_compiler/src/kernel/compiler.dart:3573)
+#23     ProgramCompiler._withLetScope (package:dev_compiler/src/kernel/compiler.dart:2553)
+#24     ProgramCompiler._withCurrentFunction (package:dev_compiler/src/kernel/compiler.dart:3610)
+#25     ProgramCompiler._emitSyncFunctionBody (package:dev_compiler/src/kernel/compiler.dart:3569)
+#26     ProgramCompiler._emitFunction (package:dev_compiler/src/kernel/compiler.dart:3385)
+#27     ProgramCompiler._emitArrowFunction (package:dev_compiler/src/kernel/compiler.dart:7032)
+#28     ProgramCompiler.visitFunctionExpression (package:dev_compiler/src/kernel/compiler.dart:7025)
+#29     FunctionExpression.accept (package:kernel/ast.dart:8588)
+#30     ProgramCompiler._visitExpression (package:dev_compiler/src/kernel/compiler.dart:3925)
+#31     ProgramCompiler._emitNamedExpression (package:dev_compiler/src/kernel/compiler.dart:6306)
+#32     ProgramCompiler._emitArgumentList (package:dev_compiler/src/kernel/compiler.dart:6298)
+#33     ProgramCompiler.visitConstructorInvocation (package:dev_compiler/src/kernel/compiler.dart:6520)
+#34     ConstructorInvocation.accept (package:kernel/ast.dart:6666)
+#35     ProgramCompiler._visitExpression (package:dev_compiler/src/kernel/compiler.dart:3925)
+#36     ProgramCompiler._emitNamedExpression (package:dev_compiler/src/kernel/compiler.dart:6306)
+#37     ProgramCompiler._emitArgumentList (package:dev_compiler/src/kernel/compiler.dart:6298)
+#38     ProgramCompiler.visitConstructorInvocation (package:dev_compiler/src/kernel/compiler.dart:6520)
+#39     ConstructorInvocation.accept (package:kernel/ast.dart:6666)
+#40     ProgramCompiler._visitExpression (package:dev_compiler/src/kernel/compiler.dart:3925)
+#41     ProgramCompiler._emitNamedExpression (package:dev_compiler/src/kernel/compiler.dart:6306)
+#42     ProgramCompiler._emitArgumentList (package:dev_compiler/src/kernel/compiler.dart:6298)
+#43     ProgramCompiler.visitConstructorInvocation (package:dev_compiler/src/kernel/compiler.dart:6520)
+#44     ConstructorInvocation.accept (package:kernel/ast.dart:6666)
+#45     ProgramCompiler._visitExpression (package:dev_compiler/src/kernel/compiler.dart:3925)
+#46     ProgramCompiler.visitReturnStatement (package:dev_compiler/src/kernel/compiler.dart:4615)
+#47     ReturnStatement.accept (package:kernel/ast.dart:10140)
+#48     ProgramCompiler._visitStatement (package:dev_compiler/src/kernel/compiler.dart:3834)
+#49     MappedIterable.elementAt (dart:_internal/iterable.dart:385)
+#50     ListIterator.moveNext (dart:_internal/iterable.dart:354)
+#51     new _GrowableList._ofEfficientLengthIterable (dart:core-patch/growable_array.dart:189)
+#52     new _GrowableList.of (dart:core-patch/growable_array.dart:150)
+#53     new List.of (dart:core-patch/array_patch.dart:39)
+#54     SetBase.toList (dart:collection/set.dart:119)
+#55     ProgramCompiler.visitBlock (package:dev_compiler/src/kernel/compiler.dart:4019)
+#56     Block.accept (package:kernel/ast.dart:9181)
+#57     ProgramCompiler._visitStatement (package:dev_compiler/src/kernel/compiler.dart:3834)
+#58     ProgramCompiler._emitFunctionScopedBody (package:dev_compiler/src/kernel/compiler.dart:3867)
+#59     ProgramCompiler._emitSyncFunctionBody.<anonymous closure> (package:dev_compiler/src/kernel/compiler.dart:3573)
+#60     ProgramCompiler._withLetScope (package:dev_compiler/src/kernel/compiler.dart:2553)
+#61     ProgramCompiler._withCurrentFunction (package:dev_compiler/src/kernel/compiler.dart:3610)
+#62     ProgramCompiler._emitSyncFunctionBody (package:dev_compiler/src/kernel/compiler.dart:3569)
+#63     ProgramCompiler._emitFunction (package:dev_compiler/src/kernel/compiler.dart:3385)
+#64     ProgramCompiler._emitMethodDeclaration.<anonymous closure> (package:dev_compiler/src/kernel/compiler.dart:2120)
+#65     ProgramCompiler._withMethodDeclarationContext (package:dev_compiler/src/kernel/compiler.dart:3637)
+#66     ProgramCompiler._emitMethodDeclaration (package:dev_compiler/src/kernel/compiler.dart:2119)
+#67     ProgramCompiler._emitClassMethods (package:dev_compiler/src/kernel/compiler.dart:2060)
+#68     ProgramCompiler._emitClassDeclaration (package:dev_compiler/src/kernel/compiler.dart:905)
+#69     ProgramCompiler._emitClass (package:dev_compiler/src/kernel/compiler.dart:819)
+#70     List.forEach (dart:core-patch/growable_array.dart:417)
+#71     ProgramCompiler._emitLibrary (package:dev_compiler/src/kernel/compiler.dart:757)
+#72     List.forEach (dart:core-patch/growable_array.dart:417)
+#73     ProgramCompiler.emitModule (package:dev_compiler/src/kernel/compiler.dart:486)
+#74     IncrementalJavaScriptBundler.compile (package:frontend_server/src/javascript_bundle.dart:221)
+#75     FrontendCompiler.writeJavaScriptBundle (package:frontend_server/frontend_server.dart:870)
+<asynchronous suspension>
+#76     FrontendCompiler.compile (package:frontend_server/frontend_server.dart:685)
+<asynchronous suspension>
+#77     listenAndCompile.<anonymous closure> (package:frontend_server/frontend_server.dart:1385)
+<asynchronous suspension>
+Finished with error: the Dart compiler exited unexpectedly.
+Failed to compile application.

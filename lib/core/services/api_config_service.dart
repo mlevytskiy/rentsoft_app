@@ -5,8 +5,9 @@ class ApiConfigService {
   static const String _urlOptionKey = 'url_option'; // Ключ для опції URL
   static const String _withoutInternetValue = 'no-internet';
   static const String _localhostUrl = 'http://localhost:8888/';
-  static const String _publicUrl = 'http://rentsoft.us-east-1.elasticbeanstalk.com/api/';
-  static const String _usageScenarioKey = 'usage_scenario';  // Ключ для сценарію використання
+  static const String _publicUrl = 'http://rentsoft-env-1.eba-xkfjndpj.us-east-1.elasticbeanstalk.com/api/api/';
+  static const String _usageScenarioKey = 'usage_scenario'; // Ключ для сценарію використання
+  static const String _accessTokenKey = 'access_token'; // Ключ для токена доступу
 
   // Сервіс-сінглтон
   static final ApiConfigService _instance = ApiConfigService._internal();
@@ -77,5 +78,17 @@ class ApiConfigService {
   Future<String?> getSavedUsageScenario() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_usageScenarioKey);
+  }
+  
+  // Отримати збережений токен доступу
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_accessTokenKey);
+  }
+  
+  // Зберегти токен доступу
+  Future<void> setToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_accessTokenKey, token);
   }
 }
