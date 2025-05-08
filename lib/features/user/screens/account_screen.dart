@@ -5,7 +5,7 @@ import 'package:rentsoft_app/features/auth/bloc/auth_event.dart';
 import 'package:rentsoft_app/features/auth/models/user_model.dart';
 
 import '../../../core/di/service_locator.dart';
-import '../../../features/auth/repositories/mock_auth_repository.dart';
+import '../../../features/auth/repositories/auth_repository.dart';
 import '../widgets/verification_status_widget.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -16,7 +16,7 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final _authRepository = getIt<MockAuthRepository>();
+  final _authRepository = getIt<AuthRepository>();
   bool _isEditing = false;
 
   late TextEditingController _firstNameController;

@@ -127,14 +127,25 @@ class AuthRepository implements IAuthRepository {
     if (userDataString != null) {
       try {
         // Перетворюємо рядок у JSON об'єкт
-        final Map<String, dynamic> userData = Map<String, dynamic>.from(
+        final Map<String, dynamic> fullData = Map<String, dynamic>.from(
           json.decode(userDataString)
         );
-        return UserModel.fromJson(userData);
+        
+        // Перевіряємо структуру даних - чи є поле 'user' в даних
+        if (fullData.containsKey('user')) {
+          print('DEBUG: getCurrentUser - знайдено поле user в даних');
+          return UserModel.fromJson(fullData['user']);
+        } else {
+          // Якщо немає окремого поля 'user', спробуємо використати самі дані
+          print('DEBUG: getCurrentUser - використовуємо всі дані як об\'єкт користувача');
+          return UserModel.fromJson(fullData);
+        }
       } catch (e) {
+        print('DEBUG: Помилка при парсингу даних користувача: $e');
         return null;
       }
     }
+    print('DEBUG: Дані користувача не знайдені в сховищі');
     return null;
   }
 
