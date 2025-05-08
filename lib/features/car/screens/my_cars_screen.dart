@@ -3,8 +3,10 @@ import '../models/car_model.dart';
 import '../services/car_service.dart';
 import 'car_detail_screen.dart';
 
-// Додаємо GlobalKey для зовнішнього доступу до екрану
-final myCarScreenKey = GlobalKey<MyCarsScreenState>();
+// Замість глобального ключа використовуємо фабричний метод для створення унікальних ключів
+GlobalKey<MyCarsScreenState> createMyCarsScreenKey() {
+  return GlobalKey<MyCarsScreenState>();
+}
 
 class MyCarsScreen extends StatefulWidget {
   const MyCarsScreen({super.key});

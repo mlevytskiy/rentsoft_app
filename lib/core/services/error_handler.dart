@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
+import '../../features/auth/models/auth_error_model.dart';
 
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
+  final AuthErrorModel? authError;
 
-  ApiException({required this.message, this.statusCode});
+  ApiException({required this.message, this.statusCode, this.authError});
 
   @override
   String toString() => message;
@@ -29,15 +31,17 @@ class ApiException implements Exception {
             case 400:
               final data = error.response?.data;
               if (data is Map<String, dynamic>) {
-                // Try to extract the first field error
-                final errorMessages = <String>[];
-                data.forEach((key, value) {
-                  if (key != '_query_stats' && value is List && value.isNotEmpty) {
-                    errorMessages.add('$key: ${value.join(", ")}');
-                  }
-                });
-                if (errorMessages.isNotEmpty) {
-                  message = errorMessages.join('\n');
+                // Create a structured error model for API errors
+                final authError = AuthErrorModel.fromResponse(data, statusCode: statusCode);
+                
+                if (authError.fieldErrors.isNotEmpty) {
+                  // Set first error as message for backward compatibility
+                  message = authError.getFirstError();
+                  return ApiException(
+                    message: message, 
+                    statusCode: statusCode,
+                    authError: authError
+                  );
                 } else {
                   message = 'Bad request';
                 }

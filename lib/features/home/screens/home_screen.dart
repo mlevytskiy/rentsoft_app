@@ -12,10 +12,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 1; // Start with search tab by default
+  late final GlobalKey<MyCarsScreenState> _myCarsScreenKey;
 
-  final List<Widget> _tabs = [
-    // Використовуємо глобальний ключ з файлу my_cars_screen.dart
-    MyCarsScreen(key: myCarScreenKey),
+  @override
+  void initState() {
+    super.initState();
+    // Створюємо унікальний ключ для цього екземпляру екрану
+    _myCarsScreenKey = createMyCarsScreenKey();
+  }
+
+  late final List<Widget> _tabs = [
+    // Використовуємо унікальний ключ для цього екрану
+    MyCarsScreen(key: _myCarsScreenKey),
     const CarSearchScreen(),
     const AccountScreen(),
   ];
@@ -34,8 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
           currentIndex: _currentIndex,
           onTap: (index) {
             // При перемиканні на вкладку "Мої авто" (індекс 0), оновлюємо список автомобілів
-            if (index == 0 && myCarScreenKey.currentState != null) {
-              myCarScreenKey.currentState!.reloadBookedCars();
+            if (index == 0 && _myCarsScreenKey.currentState != null) {
+              _myCarsScreenKey.currentState!.reloadBookedCars();
             }
             
             setState(() {

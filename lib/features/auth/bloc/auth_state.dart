@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../models/auth_error_model.dart';
 import '../models/user_model.dart';
 
 abstract class AuthState extends Equatable {
@@ -42,9 +43,24 @@ class AuthAuthenticated extends AuthState {
 
 class AuthFailure extends AuthState {
   final String error;
+  final AuthErrorModel? apiError;
 
-  const AuthFailure(this.error);
+  const AuthFailure(this.error, {this.apiError});
+
+  factory AuthFailure.fromError(dynamic error) {
+    if (error is AuthErrorModel) {
+      return AuthFailure(
+        error.getFirstError(),
+        apiError: error,
+      );
+    }
+    return AuthFailure(error.toString());
+  }
+
+  bool get hasFieldErrors => apiError != null && apiError!.fieldErrors.isNotEmpty;
+  String get allErrors => apiError?.getAllErrors() ?? error;
+  Map<String, List<String>> get fieldErrors => apiError?.fieldErrors ?? {};
 
   @override
-  List<Object?> get props => [error];
+  List<Object?> get props => [error, apiError];
 }

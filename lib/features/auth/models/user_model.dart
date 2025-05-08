@@ -143,7 +143,18 @@ class ProfileModel {
     // Обробка різних форматів даних від API
     var verificationValue = json['verification_status'] ?? json['is_verified'];
     
-    // Якщо це старий формат (булеве значення)
+    // Для нових користувачів з API може прийти null, тоді встановлюємо notVerified
+    if (verificationValue == null) {
+      return ProfileModel(
+        id: json['id'],
+        name: json['name'],
+        surname: json['surname'],
+        avatar: json['avatar'],
+        verificationStatus: VerificationStatus.notVerified,
+      );
+    }
+    
+    // Якщо це булеве значення
     if (verificationValue is bool) {
       return ProfileModel(
         id: json['id'],
@@ -156,14 +167,13 @@ class ProfileModel {
       );
     }
     
-    // Якщо це новий формат (рядок статусу)
+    // Якщо це рядок статусу
     return ProfileModel(
       id: json['id'],
       name: json['name'],
       surname: json['surname'],
       avatar: json['avatar'],
-      verificationStatus: VerificationStatusExtension.fromJson(
-          verificationValue as String?),
+      verificationStatus: VerificationStatusExtension.fromJson(verificationValue as String?),
     );
   }
 

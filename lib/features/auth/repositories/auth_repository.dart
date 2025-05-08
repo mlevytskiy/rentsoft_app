@@ -80,6 +80,16 @@ class AuthRepository implements IAuthRepository {
         
         // Зберігаємо дані користувача для подальшого використання
         final userJson = response.data['user'] as Map<String, dynamic>;
+        
+        // Переконаємося, що профіль містить правильну інформацію
+        if (userJson.containsKey('profile') && userJson['profile'] is Map<String, dynamic>) {
+          // Переконуємося, що profile.is_verified = false (для нових користувачів)
+          if (!userJson['profile'].containsKey('is_verified')) {
+            (userJson['profile'] as Map<String, dynamic>)['is_verified'] = false;
+          }
+        }
+        
+        print('DEBUG: Register response - user: $userJson');
         final user = UserModel.fromJson(userJson);
         await _secureStorage.write(key: 'user_data', value: jsonEncode(response.data));
         

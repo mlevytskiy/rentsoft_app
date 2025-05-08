@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/services/api_config_service.dart';
+import '../../../core/services/error_handler.dart';
 import '../../../core/services/version_service.dart';
 import '../models/user_model.dart';
 import '../repositories/i_auth_repository.dart';
@@ -145,7 +146,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Явно вказуємо, що користувач існуючий
         emit(AuthAuthenticated.existingUser(user));
       } catch (e) {
-        emit(AuthFailure(e.toString()));
+        if (e is ApiException && e.authError != null) {
+          emit(AuthFailure.fromError(e.authError!));
+        } else {
+          emit(AuthFailure.fromError(e));
+        }
       }
     }
   }
@@ -188,7 +193,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Явно використовуємо фабричний метод для нового користувача
       emit(AuthAuthenticated.newUser(user));
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      if (e is ApiException && e.authError != null) {
+        emit(AuthFailure.fromError(e.authError!));
+      } else {
+        emit(AuthFailure.fromError(e));
+      }
     }
   }
 

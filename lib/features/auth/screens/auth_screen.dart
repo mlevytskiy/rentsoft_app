@@ -201,10 +201,47 @@ class _AuthScreenState extends State<AuthScreen> with WidgetsBindingObserver {
               ),
             );
           } else if (state is AuthFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.error)),
-            );
+            // Clear any previous SnackBars
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            
+            if (state.hasFieldErrors) {
+              // Update form fields with API errors
+              final Map<String, List<String>> fieldErrors = state.fieldErrors;
+              
+              // Handle email-specific errors
+              if (fieldErrors.containsKey('email')) {
+                _emailController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _emailController.text.length),
+                );
+              }
+              
+              // Display full error message in SnackBar
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.allErrors),
+                  backgroundColor: Colors.red[700],
+                  duration: const Duration(seconds: 5),
+                  action: SnackBarAction(
+                    label: 'Закрити',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    },
+                  ),
+                ),
+              );
+            } else {
+              // Show simple error for non-field errors
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.error),
+                  backgroundColor: Colors.red[700],
+                ),
+              );
+            }
           } else if (state is AuthAuthenticated && state.isNewUser) {
+            print('DEBUG: User registered as new user, navigating to verification screen');
+            print('DEBUG: User data: ${state.user.email}, isVerified=${state.user.profile?.isVerified}');
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (context) => VerificationScreen(user: state.user),
