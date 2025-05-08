@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/di/service_locator.dart';
+import '../../../core/services/api_config_service.dart';
 import '../../../core/services/scenario_service.dart';
+import '../../../features/auth/screens/auth_screen.dart';
 import '../models/car_model.dart';
 import '../services/car_service.dart';
 import 'car_detail_screen.dart';
+
 
 class CarSearchScreen extends StatefulWidget {
   const CarSearchScreen({super.key});
@@ -17,9 +21,12 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   final _searchController = TextEditingController();
   final _carService = CarService();
   final _scenarioService = getIt<ScenarioService>();
+  final _apiConfigService = getIt<ApiConfigService>();
+  final _secureStorage = const FlutterSecureStorage();
   List<Car> _cars = [];
   bool _isLoading = true;
   String? _error;
+  bool _isAuthorized = false;
   FleetMode _fleetMode = FleetMode.all;
 
   // Filter states
@@ -68,8 +75,26 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   @override
   void initState() {
     super.initState();
+    _checkAuthStatus();
     _loadFleetMode();
-    _loadCars();
+  }
+  
+  // Перевіряємо статус авторизації користувача
+  Future<void> _checkAuthStatus() async {
+    final token = await _secureStorage.read(key: 'access_token');
+    setState(() {
+      _isAuthorized = token != null && token.isNotEmpty;
+    });
+    
+    if (_isAuthorized) {
+      _loadCars();
+    } else {
+      // якщо не авторизований, відображаємо порожній список
+      setState(() {
+        _isLoading = false;
+        _error = null;
+      });
+    }
   }
 
   Future<void> _loadCars() async {
@@ -79,6 +104,17 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     });
 
     try {
+      // Перевіряємо токен перед запитом
+      final token = await _secureStorage.read(key: 'access_token');
+      if (token == null || token.isEmpty) {
+        print('DEBUG: CarSearchScreen - токен відсутній');
+        setState(() {
+          _isLoading = false;
+          _isAuthorized = false;
+        });
+        return;
+      }
+      
       // Get all available cars
       final availableCars = await _carService.getAvailableCars();
       
@@ -133,6 +169,8 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
   // Завантажуємо поточний режим відображення автопарків
   Future<void> _loadFleetMode() async {
     final fleetMode = await _scenarioService.getFleetMode();
+    final isOfflineMode = await _apiConfigService.isOfflineMode();
+    
     setState(() {
       _fleetMode = fleetMode;
       
@@ -141,6 +179,13 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
         _selectedCarPark = 'Автопарк 1';
       }
     });
+    
+    // Якщо офлайн режим, не потрібна авторизація
+    if (isOfflineMode) {
+      setState(() {
+        _isAuthorized = true; // в офлайн режимі можемо працювати без авторизації
+      });
+    }
   }
 
   @override
@@ -148,13 +193,44 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildSearchBar(),
-            _buildFilters(),
-            Expanded(child: _buildCarList()),
-          ],
-        ),
+        child: _isAuthorized 
+          ? Column(
+              children: [
+                _buildSearchBar(),
+                _buildFilters(),
+                Expanded(child: _buildCarList()),
+              ],
+            )
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.no_accounts, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Для перегляду автомобілів потрібно увійти',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Будь ласка, авторизуйтесь для доступу до пошуку автомобілів',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                      ).then((_) => _checkAuthStatus());
+                    },
+                    child: const Text('Увійти'),
+                  ),
+                ],
+              ),
+            ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

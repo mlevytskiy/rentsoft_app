@@ -187,11 +187,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.name,
         event.surname,
       );
-      // Відмічаємо, що користувач новий і потребує верифікації
-      print('DEBUG: Реєстрація користувача - встановлюємо isNewUser=true');
-      print('DEBUG: Профіль користувача isVerified=${user.profile?.isVerified ?? false}');
-      // Явно використовуємо фабричний метод для нового користувача
-      emit(AuthAuthenticated.newUser(user));
+      print('DEBUG: Реєстрація успішна, але API не повертає токени. Спробуємо автоматичний вхід');
+      
+      // Після успішної реєстрації виконуємо автоматичний вхід
+      try {
+        // Виконуємо вхід з тими ж обліковими даними
+        final loggedInUser = await repository.login(
+          event.email,
+          event.password,
+          isAdmin: false,
+        );
+        
+        // Передаємо інформацію про нового користувача
+        print('DEBUG: Автоматичний вхід після реєстрації успішний');
+        print('DEBUG: Реєстрація користувача - встановлюємо isNewUser=true');
+        print('DEBUG: Профіль користувача isVerified=${loggedInUser.profile?.isVerified ?? false}');
+        
+        // Явно використовуємо фабричний метод для нового користувача
+        emit(AuthAuthenticated.newUser(loggedInUser));
+      } catch (loginError) {
+        // Якщо вхід після реєстрації не вдався, все одно повертаємо успіх реєстрації
+        print('DEBUG: Помилка при автоматичному вході після реєстрації: $loginError');
+        // Все одно вважаємо реєстрацію успішною
+        emit(AuthAuthenticated.newUser(user));
+      }
     } catch (e) {
       if (e is ApiException && e.authError != null) {
         emit(AuthFailure.fromError(e.authError!));

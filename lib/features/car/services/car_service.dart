@@ -1,5 +1,5 @@
 import '../models/car_model.dart';
-import '../repositories/car_repository.dart';
+import '../repositories/advertisement_repository.dart';
 import '../repositories/i_car_repository.dart';
 import '../repositories/mock_car_repository.dart';
 import '../../../core/services/api_config_service.dart';
@@ -35,8 +35,13 @@ class CarService {
       // Синхронізуємо заброньовані автомобілі з моковим репозиторієм
       _syncBookedCarsWithMockRepository();
     } else {
-      print('CarService: Using real CarRepository with API');
-      _carRepository = CarRepository();
+      print('CarService: Using AdvertisementRepository with API');
+      // Отримуємо ID автопарку з ApiConfigService
+      final fleetId = await _apiConfigService.getFleetId();
+      print('CarService: Using fleetId: $fleetId');
+      
+      // Використовуємо AdvertisementRepository з ID автопарку
+      _carRepository = AdvertisementRepository(fleetId: fleetId.toString());
     }
   }
 
