@@ -1,0 +1,248 @@
+# Інтеграція з API для автомобілів
+
+## Загальний опис
+Ця фіча реалізує отримання даних про автомобілі з сервера, замінюючи моковані дані реальними. Вона включає створення спеціального репозиторію для оголошень про автомобілі, який отримує дані через API-ендпоінт, та інтеграцію цього репозиторію з існуючою системою.
+
+## Ключові компоненти
+
+### 1. AdvertisementRepository (lib/features/car/repositories/advertisement_repository.dart)
+Новий репозиторій для отримання даних про автомобілі з сервера.
+
+```dart
+class AdvertisementRepository implements ICarRepository {
+  final ApiClient _apiClient;
+  final String fleetId;
+
+  AdvertisementRepository({
+    required this.fleetId,
+    ApiClient? apiClient,
+  }) : _apiClient = apiClient ?? ApiClient();
+
+  @override
+  Future<List<Car>> getCars() async {
+    try {
+      final response = await _apiClient.get('/users/$fleetId/advertisements');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data as List<dynamic>;
+        final cars = data.map((item) => Car.fromMap(item)).toList();
+        return cars;
+      } else {
+        throw ApiException(
+          message: 'Failed to fetch cars: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ApiException) {
+        print('Error fetching cars: ${e.message}');
+        rethrow;
+      }
+      throw ApiException(message: 'Error fetching cars: $e');
+    }
+  }
+
+  @override
+  Future<List<Car>> getFilteredCars(CarFilter filter) async {
+    // Реалізація фільтрації на стороні клієнта
+    final allCars = await getCars();
+    return allCars.where((car) => _matchesFilter(car, filter)).toList();
+  }
+
+  bool _matchesFilter(Car car, CarFilter filter) {
+    // Логіка фільтрації аналогічна існуючій в MockCarRepository
+    if (filter.brand != null && filter.brand!.isNotEmpty && car.brand != filter.brand) {
+      return false;
+    }
+    if (filter.model != null && filter.model!.isNotEmpty && car.model != filter.model) {
+      return false;
+    }
+    // Інші фільтри...
+    return true;
+  }
+
+  @override
+  Future<Car?> getCarById(String id) async {
+    final allCars = await getCars();
+    return allCars.firstWhere((car) => car.id == id, orElse: () => null);
+  }
+
+  // Інші методи з інтерфейсу ICarRepository...
+}
+```
+
+### 2. Оновлений CarService (lib/features/car/services/car_service.dart)
+Модифікація сервісу для використання AdvertisementRepository при наявності інтернету.
+
+```dart
+class CarService {
+  final ScenarioService _scenarioService = getIt<ScenarioService>();
+  late ICarRepository _carRepository;
+  bool _isOfflineMode = false;
+
+  // Конструктор
+  CarService() {
+    _checkInternetAndInitializeRepository();
+  }
+
+  Future<void> _checkInternetAndInitializeRepository() async {
+    final apiClient = ApiClient();
+    _isOfflineMode = await apiClient.isOfflineMode();
+    
+    if (_isOfflineMode) {
+      _carRepository = MockCarRepository();
+      print('CarService: Using mock car repository');
+    } else {
+      final fleetId = await _scenarioService.getFleetId();
+      if (fleetId != null) {
+        _carRepository = AdvertisementRepository(fleetId: fleetId);
+        print('CarService: Using advertisement repository with fleet ID: $fleetId');
+      } else {
+        print('CarService: No fleet ID found, falling back to mock repository');
+        _carRepository = MockCarRepository();
+      }
+    }
+  }
+
+  // Отримання доступних автомобілів
+  Future<List<Car>> getAvailableCars() async {
+    await _checkInternetAndInitializeRepository();
+    
+    try {
+      final cars = await _carRepository.getCars();
+      return cars;
+    } catch (e) {
+      print('Error getting available cars: $e');
+      // Якщо помилка при отриманні даних з API, повертаємося до мок-даних
+      if (!_isOfflineMode) {
+        print('Falling back to mock car data due to error');
+        _carRepository = MockCarRepository();
+        return await _carRepository.getCars();
+      }
+      rethrow;
+    }
+  }
+
+  // Інші методи, які використовують _carRepository...
+}
+```
+
+### 3. ScenarioService (lib/core/services/scenario_service.dart)
+Сервіс для управління ID автопарку.
+
+```dart
+class ScenarioService {
+  static const String _fleetIdKey = 'fleet_id';
+  final FlutterSecureStorage _secureStorage;
+  String? _cachedFleetId;
+
+  ScenarioService({FlutterSecureStorage? secureStorage})
+      : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+
+  // Отримання ID автопарку
+  Future<String?> getFleetId() async {
+    _cachedFleetId = await _secureStorage.read(key: _fleetIdKey);
+    return _cachedFleetId;
+  }
+
+  // Збереження ID автопарку
+  Future<void> setFleetId(String? fleetId) async {
+    if (fleetId == null || fleetId.isEmpty) {
+      await _secureStorage.delete(key: _fleetIdKey);
+      _cachedFleetId = null;
+    } else {
+      await _secureStorage.write(key: _fleetIdKey, value: fleetId);
+      _cachedFleetId = fleetId;
+    }
+  }
+}
+```
+
+### 4. Оновлена CarSearchScreen (lib/features/car/screens/car_search_screen.dart)
+Додано оновлення даних при зміні конфігурації API.
+
+```dart
+class _CarSearchScreenState extends State<CarSearchScreen> {
+  final _searchController = TextEditingController();
+  final _carService = CarService();
+  final _scenarioService = getIt<ScenarioService>();
+  final _apiConfigService = ApiConfigService();
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadCars();
+    // Додаємо слухача для оновлення при зміні URL
+    _apiConfigService.addUrlChangeListener(_handleApiConfigChange);
+  }
+
+  @override
+  void dispose() {
+    _apiConfigService.removeUrlChangeListener(_handleApiConfigChange);
+    super.dispose();
+  }
+
+  // Обробка зміни конфігурації API
+  void _handleApiConfigChange() {
+    print('API configuration changed, reloading cars...');
+    _loadCars();
+  }
+
+  // Завантаження даних автомобілів
+  Future<void> _loadCars() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final cars = await _carService.getAvailableCars();
+      setState(() {
+        _cars = cars;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Помилка завантаження автомобілів: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Решта коду CarSearchScreen...
+}
+```
+
+## Приклад роботи функціоналу
+
+### Сценарій 1: Режим онлайн з налаштованим ID автопарку
+1. Користувач відкриває Secret Screen і встановлює ID автопарку (наприклад, "12345")
+2. Користувач переходить на екран пошуку автомобілів
+3. Система перевіряє наявність інтернету
+4. Використовуючи ID автопарку, система створює AdvertisementRepository
+5. Виконується запит до API за адресою `/users/12345/advertisements`
+6. API повертає список автомобілів, які перетворюються на об'єкти Car
+7. Список автомобілів відображається на екрані
+
+### Сценарій 2: Режим офлайн
+1. Користувач вимикає інтернет або обирає опцію "Without Internet" в Secret Screen
+2. При переході на екран пошуку автомобілів система визначає офлайн-режим
+3. Створюється MockCarRepository замість AdvertisementRepository
+4. Використовуються локальні моковані дані автомобілів
+5. Список автомобілів відображається на екрані
+
+### Сценарій 3: Зміна API-конфігурації
+1. Користувач змінює URL API або ID автопарку на Secret Screen
+2. Система отримує сповіщення про зміну конфігурації
+3. При наступному переході на екран пошуку автомобілів (або якщо він вже відкритий) дані перезавантажуються
+4. Використовується нова конфігурація для отримання даних
+
+## Вирішення проблем
+Якщо фіча перестала працювати, перевірте:
+
+1. Переконайтеся, що ID автопарку правильно зберігається в ScenarioService
+2. Перевірте, що ApiClient правильно налаштований для роботи з актуальним URL API
+3. Перевірте, що AdvertisementRepository правильно формує URL для запиту: `/users/{fleetId}/advertisements`
+4. Переконайтеся, що CarService правильно визначає режим онлайн/офлайн і вибирає відповідний репозиторій
+5. Перевірте, що перехоплення помилок працює коректно, і система переключається на моковані дані при помилках API
+6. Перевірте, що Car.fromMap правильно обробляє формат даних, що повертаються API

@@ -1,0 +1,209 @@
+# Версійний контроль
+
+## Загальний опис
+Ця фіча реалізує автоматичне перенаправлення користувача на екран входу при оновленні версії додатку. Вона допомагає запобігти потенційним проблемам, які можуть виникнути через зміни в структурі даних або логіці додатку між різними версіями. Коли користувач запускає нову версію додатку, система автоматично виходить з аккаунту та перенаправляє його на екран входу.
+
+## Ключові компоненти
+
+### 1. VersionService (lib/core/services/version_service.dart)
+Сервіс для відстеження та перевірки змін версії додатку.
+
+```dart
+class VersionService {
+  static const String _versionKey = 'app_version';
+  final FlutterSecureStorage _secureStorage;
+  final PackageInfo _packageInfo;
+
+  VersionService({
+    required FlutterSecureStorage secureStorage,
+    required PackageInfo packageInfo,
+  })  : _secureStorage = secureStorage,
+        _packageInfo = packageInfo;
+
+  // Створення екземпляру з автоматичним отриманням інформації про пакет
+  static Future<VersionService> create() async {
+    final secureStorage = const FlutterSecureStorage();
+    final packageInfo = await PackageInfo.fromPlatform();
+    return VersionService(
+      secureStorage: secureStorage,
+      packageInfo: packageInfo,
+    );
+  }
+
+  // Отримання поточної версії додатку
+  String getCurrentVersion() {
+    return _packageInfo.version;
+  }
+
+  // Отримання збереженої версії додатку
+  Future<String?> getSavedVersion() async {
+    return await _secureStorage.read(key: _versionKey);
+  }
+
+  // Збереження поточної версії додатку
+  Future<void> saveCurrentVersion() async {
+    await _secureStorage.write(key: _versionKey, value: _packageInfo.version);
+  }
+
+  // Перевірка чи змінилася версія додатку
+  Future<bool> hasVersionChanged() async {
+    final savedVersion = await getSavedVersion();
+    final currentVersion = getCurrentVersion();
+    
+    // Якщо збереженої версії немає, значить це перший запуск додатку
+    if (savedVersion == null) {
+      await saveCurrentVersion();
+      return false;
+    }
+    
+    // Порівнюємо версії
+    return savedVersion != currentVersion;
+  }
+}
+```
+
+### 2. Інтеграція з AuthBloc (lib/features/auth/bloc/auth_bloc.dart)
+Доповнення AuthBloc для перевірки версії при запуску.
+
+```dart
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  // ... Існуючий код ...
+  late VersionService _versionService;
+
+  AuthBloc() : super(AuthInitial()) {
+    // ... Існуючі обробники подій ...
+    on<AuthCheckVersion>(_onCheckVersion);
+    
+    // Ініціалізація VersionService
+    _initVersionService();
+  }
+
+  Future<void> _initVersionService() async {
+    _versionService = await VersionService.create();
+  }
+
+  Future<void> _onCheckVersion(
+    AuthCheckVersion event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      final hasVersionChanged = await _versionService.hasVersionChanged();
+      
+      if (hasVersionChanged) {
+        print('DEBUG: Версія додатку змінилася! Здійснюємо логаут...');
+        
+        // Очищаємо дані про користувача та токени
+        final secureStorage = const FlutterSecureStorage();
+        await secureStorage.delete(key: 'access_token');
+        await secureStorage.delete(key: 'refresh_token');
+        await secureStorage.delete(key: 'user_data');
+        
+        // Зберігаємо нову версію додатку
+        await _versionService.saveCurrentVersion();
+        
+        // Переходимо до стану, який вимагає повторної автентифікації
+        emit(AuthUnauthenticated());
+      } else {
+        // Продовжуємо звичайний потік ініціалізації
+        add(AuthInitialize());
+      }
+    } catch (e) {
+      print('ERROR: Помилка перевірки версії: $e');
+      // У випадку помилки продовжуємо звичайний потік ініціалізації
+      add(AuthInitialize());
+    }
+  }
+}
+```
+
+### 3. Клас події для перевірки версії (lib/features/auth/bloc/auth_event.dart)
+```dart
+class AuthCheckVersion extends AuthEvent {}
+```
+
+### 4. Інтеграція в процес запуску додатку (lib/main.dart)
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Ініціалізація GetIt для dependency injection
+  setupLocator();
+  
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  final AuthBloc _authBloc = AuthBloc();
+
+  MyApp() {
+    // При запуску додатку спочатку перевіряємо версію
+    _authBloc.add(AuthCheckVersion());
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => _authBloc,
+      child: MaterialApp(
+        title: 'RentSoft',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
+        home: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is AuthInitial) {
+              return SplashScreen();
+            } else if (state is AuthUnauthenticated) {
+              return AuthScreen();
+            } else if (state is AuthAuthenticated) {
+              return HomeScreen();
+            } else {
+              return SplashScreen();
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+```
+
+## Приклад роботи функціоналу
+
+### Сценарій 1: Перший запуск додатку
+1. Користувач запускає додаток вперше
+2. Виконується метод main, який створює екземпляр MyApp
+3. Конструктор MyApp ініціює подію AuthCheckVersion в AuthBloc
+4. AuthBloc викликає VersionService.hasVersionChanged()
+5. Оскільки це перший запуск, збереженої версії немає, тому hasVersionChanged() повертає false
+6. VersionService зберігає поточну версію додатку
+7. AuthBloc продовжує звичайну логіку ініціалізації, додаючи подію AuthInitialize
+8. Користувач бачить звичайний потік запуску додатку
+
+### Сценарій 2: Оновлення додатку
+1. Користувач оновлює додаток до нової версії
+2. При першому запуску нової версії виконується той самий процес
+3. VersionService.hasVersionChanged() порівнює збережену версію з поточною і виявляє різницю
+4. AuthBloc виконує логаут користувача, видаляючи токени і дані
+5. VersionService зберігає нову версію додатку
+6. AuthBloc переходить у стан AuthUnauthenticated
+7. Користувач перенаправляється на екран входу, де він має заново автентифікуватися
+
+### Сценарій 3: Запуск додатку без зміни версії
+1. Користувач запускає додаток, версія якого не змінилася
+2. VersionService.hasVersionChanged() порівнює версії і не знаходить різниці
+3. AuthBloc продовжує звичайну логіку ініціалізації
+4. Якщо у користувача є збережені токени, він автоматично входить в систему
+5. В іншому випадку, він бачить екран входу
+
+## Вирішення проблем
+Якщо фіча перестала працювати, перевірте:
+
+1. Переконайтеся, що VersionService коректно ініціалізується і отримує актуальну інформацію про пакет
+2. Перевірте, що FlutterSecureStorage правильно зберігає та зчитує версію додатку
+3. Переконайтеся, що AuthBloc правильно обробляє подію AuthCheckVersion
+4. Перевірте, що порівняння версій працює коректно, особливо при семантичному версіонуванні (наприклад, 1.0.0 vs 1.0.1)
+5. Переконайтеся, що очищення даних користувача виконується повністю (всі токени і дані видаляються)
+6. Перевірте логи, щоб зрозуміти, які версії порівнюються і яке рішення приймається
+7. Якщо версія змінилася, але користувача не перенаправляє на екран входу, перевірте, чи був викликаний обробник події AuthCheckVersion

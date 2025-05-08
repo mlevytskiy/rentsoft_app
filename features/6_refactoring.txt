@@ -1,0 +1,342 @@
+# Рефакторинг та виправлення помилок
+
+## Загальний опис
+Ця фіча включає різні поліпшення коду, виправлення помилок та оптимізації, які були впроваджені для підвищення стабільності та продуктивності додатку. Основна увага приділялася усуненню помилок NullPointerException, вирішенню проблем з дублюванням GlobalKey, покращенню обробки API-відповідей та розширенню можливостей логування для діагностики проблем.
+
+## Ключові компоненти
+
+### 1. Виправлення проблеми дублювання GlobalKey в MyCarsScreen
+Проблема дублювання GlobalKey виникала, коли MyCarsScreen використовувався в різних частинах додатку з одним і тим же статичним ключем.
+
+#### Було:
+```dart
+// lib/features/car/screens/my_cars_screen.dart
+class MyCarsScreen extends StatefulWidget {
+  static final GlobalKey<_MyCarsScreenState> globalKey = GlobalKey<_MyCarsScreenState>();
+  
+  const MyCarsScreen({Key? key = globalKey}) : super(key: key);
+  
+  @override
+  _MyCarsScreenState createState() => _MyCarsScreenState();
+}
+```
+
+#### Стало:
+```dart
+// lib/features/car/screens/my_cars_screen.dart
+class MyCarsScreen extends StatefulWidget {
+  // Замість статичного ключа використовуємо фабричний метод
+  static GlobalKey<_MyCarsScreenState> createKey() => GlobalKey<_MyCarsScreenState>();
+  
+  const MyCarsScreen({Key? key}) : super(key: key);
+  
+  @override
+  _MyCarsScreenState createState() => _MyCarsScreenState();
+}
+
+// lib/features/home/screens/home_screen.dart
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Створюємо унікальний ключ для кожного екземпляра
+  final myCarsKey = MyCarsScreen.createKey();
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // ...
+      body: MyCarsScreen(key: myCarsKey),
+      // ...
+    );
+  }
+}
+```
+
+### 2. Поліпшення обробки відсутніх полів в API-відповідях
+Виправлення проблем з NullPointerException при обробці відповідей від API, де деякі поля можуть бути відсутні.
+
+#### Обробка поля is_verified в ProfileModel:
+```dart
+// lib/features/user/models/profile_model.dart
+class ProfileModel {
+  final String name;
+  final String surname;
+  final bool isVerified;
+  
+  ProfileModel({
+    required this.name,
+    required this.surname,
+    this.isVerified = false, // Значення за замовчуванням
+  });
+  
+  factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    return ProfileModel(
+      name: json['name'] ?? '',
+      surname: json['surname'] ?? '',
+      isVerified: json['is_verified'] ?? false, // Безпечне отримання значення
+    );
+  }
+  
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'surname': surname,
+      'is_verified': isVerified,
+    };
+  }
+}
+```
+
+#### Додаткова обробка в AuthRepository:
+```dart
+// lib/features/auth/repositories/auth_repository.dart
+Future<UserModel> register(String email, String password, String name, String surname) async {
+  // ...
+  if (response.statusCode == 200 || response.statusCode == 201) {
+    // ...
+    final userJson = response.data['user'] as Map<String, dynamic>;
+    
+    // Переконаємося, що профіль містить правильну інформацію
+    if (userJson.containsKey('profile') && userJson['profile'] is Map<String, dynamic>) {
+      // Переконуємося, що profile.is_verified = false (для нових користувачів)
+      if (!userJson['profile'].containsKey('is_verified')) {
+        (userJson['profile'] as Map<String, dynamic>)['is_verified'] = false;
+      }
+    }
+    
+    print('DEBUG: Register response - user: $userJson');
+    final user = UserModel.fromJson(userJson);
+    // ...
+  }
+  // ...
+}
+```
+
+### 3. Розширене логування
+
+#### Додавання логування в ApiClient:
+```dart
+// lib/core/api/api_client.dart
+_dio.interceptors.add(LogInterceptor(
+  requestBody: true,
+  responseBody: true,
+  logPrint: (object) => print('[DIO] ${object.toString()}'),
+));
+
+_dio.interceptors.add(
+  InterceptorsWrapper(
+    onRequest: (options, handler) async {
+      // ...
+      print('[API] 🚀 REQUEST: ${options.method} ${options.path}');
+      return handler.next(options);
+    },
+    onResponse: (response, handler) {
+      print('[API] ✅ RESPONSE [${response.statusCode}]: ${response.requestOptions.path}');
+      return handler.next(response);
+    },
+    onError: (DioException error, handler) async {
+      print('[API] ❌ ERROR [${error.response?.statusCode}]: ${error.requestOptions.path}');
+      print('[API] Error message: ${error.message}');
+      // ...
+    },
+  ),
+);
+```
+
+#### Додавання діагностичного логування для обробки помилок авторизації:
+```dart
+// lib/features/auth/bloc/auth_bloc.dart
+Future<void> _onRegister(
+  AuthRegisterEvent event,
+  Emitter<AuthState> emit,
+) async {
+  emit(AuthLoading());
+  try {
+    final repository = await _getRepository();
+    final user = await repository.register(
+      event.email,
+      event.password,
+      event.name,
+      event.surname,
+    );
+    print('DEBUG: Реєстрація користувача - встановлюємо isNewUser=true');
+    print('DEBUG: Профіль користувача isVerified=${user.profile?.isVerified ?? false}');
+    emit(AuthAuthenticated.newUser(user));
+  } catch (e) {
+    print('DEBUG: Register exception: ${e.runtimeType}');
+    if (e is ApiException) {
+      print('DEBUG: API exception: ${e.message}, statusCode: ${e.statusCode}');
+      if (e.authError != null) {
+        print('DEBUG: API auth error: ${e.authError!.fieldErrors}');
+        emit(AuthFailure.fromError(e.authError!));
+      } else {
+        print('DEBUG: No structured error, creating from exception');
+        emit(AuthFailure.fromError(e));
+      }
+    } else {
+      print('DEBUG: Unknown exception type: $e');
+      emit(AuthFailure.fromError(e));
+    }
+  }
+}
+```
+
+### 4. Поліпшення обробки структурованих помилок
+
+#### Покращена версія AuthErrorModel:
+```dart
+// lib/features/auth/models/auth_error_model.dart
+class AuthErrorModel {
+  final Map<String, List<String>> fieldErrors;
+  final int? statusCode;
+  final String? rawResponse;
+
+  AuthErrorModel({
+    required this.fieldErrors,
+    this.statusCode,
+    this.rawResponse,
+  });
+
+  factory AuthErrorModel.fromResponse(dynamic responseData, {int? statusCode}) {
+    final Map<String, List<String>> fieldErrors = {};
+    
+    print('DEBUG: AuthErrorModel.fromResponse - responseData: $responseData');
+    
+    if (responseData is Map<String, dynamic>) {
+      responseData.forEach((key, value) {
+        if (key != '_query_stats') {
+          print('DEBUG: AuthErrorModel.fromResponse - processing key: $key, value: $value (${value.runtimeType})');
+          if (value is List) {
+            fieldErrors[key] = List<String>.from(value);
+          } else if (value is String) {
+            fieldErrors[key] = [value];
+          }
+        }
+      });
+    }
+
+    return AuthErrorModel(
+      fieldErrors: fieldErrors,
+      statusCode: statusCode,
+      rawResponse: responseData is String ? responseData : jsonEncode(responseData),
+    );
+  }
+
+  String getFirstError() {
+    if (fieldErrors.isEmpty) return 'Unknown error occurred';
+    
+    final firstField = fieldErrors.keys.first;
+    final firstError = fieldErrors[firstField]?.first ?? 'Error';
+    
+    return '$firstField: $firstError';
+  }
+
+  String getAllErrors() {
+    if (fieldErrors.isEmpty) return 'Unknown error occurred';
+    
+    return fieldErrors.entries
+        .map((e) => '${e.key}: ${e.value.join(', ')}')
+        .join('\n');
+  }
+}
+```
+
+#### Розширена обробка помилок в AuthState:
+```dart
+// lib/features/auth/bloc/auth_state.dart
+class AuthFailure extends AuthState {
+  final String error;
+  final AuthErrorModel? apiError;
+
+  const AuthFailure(this.error, {this.apiError});
+
+  factory AuthFailure.fromError(dynamic error) {
+    print('DEBUG: AuthFailure.fromError - error type: ${error.runtimeType}');
+    
+    if (error is AuthErrorModel) {
+      print('DEBUG: AuthFailure.fromError - converting AuthErrorModel: ${error.fieldErrors}');
+      return AuthFailure(
+        error.getFirstError(),
+        apiError: error,
+      );
+    } else if (error is ApiException && error.authError != null) {
+      print('DEBUG: AuthFailure.fromError - extracting from ApiException: ${error.authError!.fieldErrors}');
+      return AuthFailure(
+        error.message,
+        apiError: error.authError,
+      );
+    }
+    return AuthFailure(error.toString());
+  }
+
+  bool get hasFieldErrors => apiError != null && apiError!.fieldErrors.isNotEmpty;
+  String get allErrors => apiError?.getAllErrors() ?? error;
+  Map<String, List<String>> get fieldErrors => apiError?.fieldErrors ?? {};
+}
+```
+
+## Приклад роботи функціоналу
+
+### Сценарій 1: Дублювання GlobalKey
+**Проблема:**
+1. Користувач відкриває HomeScreen
+2. В HomeScreen відображається MyCarsScreen
+3. Користувач переходить на інший екран, де також використовується MyCarsScreen
+4. Виникає виняток: "Multiple widgets used the same GlobalKey"
+
+**Вирішення:**
+1. Замінили статичний GlobalKey на фабричний метод, який створює унікальний ключ при кожному виклику
+2. Тепер кожен екземпляр MyCarsScreen має свій власний ключ
+3. Помилка більше не виникає
+
+### Сценарій 2: Обробка відсутнього поля is_verified
+**Проблема:**
+1. Користувач реєструється в додатку
+2. Сервер повертає дані користувача без поля is_verified в profile
+3. При спробі перевірити статус верифікації виникає NPE
+
+**Вирішення:**
+1. Додали перевірку на наявність поля is_verified в ProfileModel.fromJson
+2. Якщо поле відсутнє, встановлюємо значення за замовчуванням (false)
+3. Переконуємося, що поле точно є в даних перед створенням UserModel
+4. NPE більше не виникає
+
+### Сценарій 3: Структуровані помилки при реєстрації
+**Проблема:**
+1. Користувач намагається зареєструватися з email, який вже існує
+2. Сервер повертає структуровану помилку з кодом 400
+3. Помилка не відображається коректно в інтерфейсі
+
+**Вирішення:**
+1. Додали детальне логування в усьому ланцюжку обробки помилок
+2. Поліпшили AuthErrorModel для коректної обробки різних форматів даних
+3. Розширили AuthFailure для підтримки як звичайних винятків, так і ApiException з вкладеними authError
+4. Тепер структуровані помилки правильно відображаються в SnackBar
+
+## Вирішення проблем
+Якщо виникають проблеми з функціональністю, перевірте:
+
+1. **Проблеми з GlobalKey:**
+   - Переконайтеся, що всі екземпляри MyCarsScreen створюються з унікальним ключем
+   - Перевірте, що метод `MyCarsScreen.createKey()` викликається для створення ключа
+   - Переконайтеся, що ключ правильно передається в конструктор віджета
+
+2. **NPE при обробці даних від API:**
+   - Перевірте всі місця, де відбувається перетворення JSON в моделі
+   - Додайте значення за замовчуванням для всіх полів, які можуть бути null
+   - Використовуйте оператор null-coalescing (??) для безпечного доступу до полів
+
+3. **Проблеми з відображенням помилок:**
+   - Перевірте логи, щоб зрозуміти, яка саме помилка виникає
+   - Переконайтеся, що ланцюжок обробки помилок працює правильно:
+     - ApiClient -> ApiException -> AuthErrorModel -> AuthFailure -> UI
+   - Перевірте формат помилок, що повертаються сервером
+   - Переконайтеся, що AuthBloc правильно обробляє винятки і передає їх у стан
+
+4. **Загальна діагностика:**
+   - Використовуйте додані функції логування для діагностики
+   - Перевірте всі точки, де ми обробляємо null-значення
+   - Зверніть увагу на формат даних, що повертаються сервером, і відповідність структури моделей цим даним

@@ -1,0 +1,307 @@
+# Функціонал пошуку автомобілів
+
+## Загальний опис
+Ця фіча реалізує функціональність пошуку та фільтрації автомобілів. Вона забезпечує динамічне завантаження списку автомобілів з сервера (коли користувач онлайн) або з локального сховища (коли користувач офлайн), а також надає інтерфейс для фільтрації та пошуку автомобілів за різними критеріями.
+
+## Ключові компоненти
+
+### 1. CarSearchScreen (lib/features/car/screens/car_search_screen.dart)
+Головний екран для пошуку та фільтрації автомобілів.
+
+```dart
+class CarSearchScreen extends StatefulWidget {
+  @override
+  _CarSearchScreenState createState() => _CarSearchScreenState();
+}
+
+class _CarSearchScreenState extends State<CarSearchScreen> {
+  final _searchController = TextEditingController();
+  final _carService = CarService();
+  final _scenarioService = getIt<ScenarioService>();
+  final _apiConfigService = ApiConfigService();
+  List<Car> _cars = [];
+  bool _isLoading = true;
+  String? _error;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadCars();
+    _apiConfigService.addUrlChangeListener(_handleApiConfigChange);
+  }
+  
+  @override
+  void dispose() {
+    _apiConfigService.removeUrlChangeListener(_handleApiConfigChange);
+    _searchController.dispose();
+    super.dispose();
+  }
+  
+  void _handleApiConfigChange() {
+    print('API configuration changed, reloading cars...');
+    _loadCars();
+  }
+  
+  Future<void> _loadCars() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    
+    try {
+      final cars = await _carService.getAvailableCars();
+      setState(() {
+        _cars = cars;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Помилка завантаження автомобілів: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+  
+  void _onSearch(String query) {
+    // Пошук автомобілів реалізовано локально (на стороні клієнта)
+    if (query.isEmpty) {
+      _loadCars();
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    _carService.searchCars(query).then((cars) {
+      setState(() {
+        _cars = cars;
+        _isLoading = false;
+      });
+    }).catchError((e) {
+      setState(() {
+        _error = 'Помилка пошуку: ${e.toString()}';
+        _isLoading = false;
+      });
+    });
+  }
+  
+  void _applyFilter(CarFilter filter) {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    _carService.getFilteredCars(filter).then((cars) {
+      setState(() {
+        _cars = cars;
+        _isLoading = false;
+      });
+    }).catchError((e) {
+      setState(() {
+        _error = 'Помилка фільтрації: ${e.toString()}';
+        _isLoading = false;
+      });
+    });
+  }
+  
+  // Методи для побудови UI екрану...
+}
+```
+
+### 2. CarFilter (lib/features/car/models/car_filter.dart)
+Модель для фільтрації автомобілів за різними критеріями.
+
+```dart
+class CarFilter {
+  final String? brand;
+  final String? model;
+  final int? minYear;
+  final int? maxYear;
+  final double? minPrice;
+  final double? maxPrice;
+  final List<String>? features;
+  final CarType? type;
+  final bool? isAvailable;
+
+  CarFilter({
+    this.brand,
+    this.model,
+    this.minYear,
+    this.maxYear,
+    this.minPrice,
+    this.maxPrice,
+    this.features,
+    this.type,
+    this.isAvailable,
+  });
+
+  // Порожній фільтр (для скидання фільтрів)
+  factory CarFilter.empty() => CarFilter();
+
+  // Копіювання фільтра зі зміною полів
+  CarFilter copyWith({
+    String? brand,
+    String? model,
+    int? minYear,
+    int? maxYear,
+    double? minPrice,
+    double? maxPrice,
+    List<String>? features,
+    CarType? type,
+    bool? isAvailable,
+  }) {
+    return CarFilter(
+      brand: brand ?? this.brand,
+      model: model ?? this.model,
+      minYear: minYear ?? this.minYear,
+      maxYear: maxYear ?? this.maxYear,
+      minPrice: minPrice ?? this.minPrice,
+      maxPrice: maxPrice ?? this.maxPrice,
+      features: features ?? this.features,
+      type: type ?? this.type,
+      isAvailable: isAvailable ?? this.isAvailable,
+    );
+  }
+}
+```
+
+### 3. Методи пошуку і фільтрації в CarService (lib/features/car/services/car_service.dart)
+Методи сервісу для взаємодії з репозиторіями та виконання пошуку.
+
+```dart
+class CarService {
+  // ... Існуючий код ...
+
+  Future<List<Car>> searchCars(String query) async {
+    await _checkInternetAndInitializeRepository();
+    
+    // Нормалізуємо пошуковий запит
+    final normalizedQuery = query.toLowerCase().trim();
+    
+    try {
+      // Спочатку отримуємо всі автомобілі
+      final allCars = await _carRepository.getCars();
+      
+      // Фільтруємо локально
+      return allCars.where((car) {
+        return car.brand.toLowerCase().contains(normalizedQuery) ||
+               car.model.toLowerCase().contains(normalizedQuery) ||
+               car.description.toLowerCase().contains(normalizedQuery) ||
+               car.features.any((feature) => feature.toLowerCase().contains(normalizedQuery));
+      }).toList();
+    } catch (e) {
+      print('Error searching cars: $e');
+      // Якщо помилка при пошуку і ми не в офлайн-режимі, пробуємо використати мок-дані
+      if (!_isOfflineMode) {
+        print('Falling back to mock car data for search due to error');
+        _carRepository = MockCarRepository();
+        return searchCars(query); // Рекурсивний виклик, але вже з мок-репозиторієм
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<Car>> getFilteredCars(CarFilter filter) async {
+    await _checkInternetAndInitializeRepository();
+    
+    try {
+      return await _carRepository.getFilteredCars(filter);
+    } catch (e) {
+      print('Error filtering cars: $e');
+      // Якщо помилка при фільтрації і ми не в офлайн-режимі, пробуємо використати мок-дані
+      if (!_isOfflineMode) {
+        print('Falling back to mock car data for filtering due to error');
+        _carRepository = MockCarRepository();
+        return await _carRepository.getFilteredCars(filter);
+      }
+      rethrow;
+    }
+  }
+}
+```
+
+### 4. Реалізація фільтрації в репозиторіях
+В обох репозиторіях (MockCarRepository та AdvertisementRepository) реалізовано метод getFilteredCars:
+
+```dart
+// В AdvertisementRepository
+@override
+Future<List<Car>> getFilteredCars(CarFilter filter) async {
+  // Фільтрація на стороні клієнта (оскільки API не підтримує параметри фільтрації)
+  final allCars = await getCars();
+  return allCars.where((car) => _matchesFilter(car, filter)).toList();
+}
+
+bool _matchesFilter(Car car, CarFilter filter) {
+  if (filter.brand != null && filter.brand!.isNotEmpty && car.brand != filter.brand) {
+    return false;
+  }
+  if (filter.model != null && filter.model!.isNotEmpty && car.model != filter.model) {
+    return false;
+  }
+  if (filter.minYear != null && car.year < filter.minYear!) {
+    return false;
+  }
+  if (filter.maxYear != null && car.year > filter.maxYear!) {
+    return false;
+  }
+  if (filter.minPrice != null && car.pricePerDay < filter.minPrice!) {
+    return false;
+  }
+  if (filter.maxPrice != null && car.pricePerDay > filter.maxPrice!) {
+    return false;
+  }
+  if (filter.type != null && car.type != filter.type) {
+    return false;
+  }
+  if (filter.isAvailable != null && car.isAvailable != filter.isAvailable) {
+    return false;
+  }
+  if (filter.features != null && filter.features!.isNotEmpty) {
+    // Перевіряємо, чи автомобіль має всі вказані характеристики
+    for (final feature in filter.features!) {
+      if (!car.features.contains(feature)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+```
+
+## Приклад роботи функціоналу
+
+### Сценарій 1: Простий пошук автомобілів
+1. Користувач відкриває екран пошуку автомобілів
+2. Автоматично завантажується список всіх доступних автомобілів (з API або локальних даних)
+3. Користувач вводить текст пошуку, наприклад "BMW"
+4. При введенні тексту викликається метод _onSearch
+5. CarService виконує пошук по всім полям (бренд, модель, опис, характеристики)
+6. Відображаються тільки автомобілі, що відповідають критерію пошуку
+
+### Сценарій 2: Фільтрація автомобілів
+1. Користувач натискає кнопку фільтрів на екрані пошуку
+2. Відкривається діалог або екран з параметрами фільтрації
+3. Користувач обирає фільтри (наприклад, бренд "Toyota", рік від 2018, ціна до 100 у.о.)
+4. Після підтвердження фільтрів викликається метод _applyFilter
+5. CarService виконує фільтрацію згідно з обраними параметрами
+6. Відображаються лише автомобілі, що відповідають всім критеріям фільтрації
+
+### Сценарій 3: Перезавантаження даних після зміни API
+1. Користувач перебуває на екрані пошуку автомобілів
+2. В іншому вікні він змінює URL API або ID автопарку
+3. ApiConfigService сповіщає всіх зареєстрованих слухачів про зміну
+4. CarSearchScreen отримує це сповіщення через _handleApiConfigChange
+5. Викликається _loadCars() для перезавантаження даних
+6. Відображаються автомобілі з нового джерела даних
+
+## Вирішення проблем
+Якщо фіча перестала працювати, перевірте:
+
+1. Переконайтеся, що CarService правильно ініціалізує репозиторій залежно від режиму онлайн/офлайн
+2. Перевірте, що функції пошуку та фільтрації коректно обробляють параметри та повертають відфільтровані дані
+3. Переконайтеся, що CarSearchScreen правильно обробляє стани завантаження та помилок
+4. Перевірте, що слухачі змін API-конфігурації правильно додаються та видаляються
+5. Переконайтеся, що UI-елементи пошуку та фільтрації правильно викликають відповідні методи
+6. Перевірте, що модель CarFilter коректно описує всі можливі параметри фільтрації
+7. Переконайтеся в правильності реалізації _matchesFilter в обох репозиторіях

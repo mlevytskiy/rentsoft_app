@@ -1,0 +1,206 @@
+# Автентифікація та обробка помилок
+
+## Загальний опис
+Ця фіча реалізує структуровану обробку помилок від сервера при автентифікації та реєстрації користувачів. Вона покращує користувацький досвід, показуючи зрозумілі повідомлення про помилки, які надходять безпосередньо з сервера.
+
+## Ключові компоненти
+
+### 1. AuthErrorModel (lib/features/auth/models/auth_error_model.dart)
+Клас для структурованої обробки помилок автентифікації від сервера.
+
+```dart
+class AuthErrorModel {
+  final Map<String, List<String>> fieldErrors;
+  final int? statusCode;
+  final String? rawResponse;
+
+  // Конструктор
+  AuthErrorModel({
+    required this.fieldErrors,
+    this.statusCode,
+    this.rawResponse,
+  });
+
+  // Створення з відповіді сервера
+  factory AuthErrorModel.fromResponse(dynamic responseData, {int? statusCode}) {
+    final Map<String, List<String>> fieldErrors = {};
+    
+    if (responseData is Map<String, dynamic>) {
+      responseData.forEach((key, value) {
+        if (key != '_query_stats') {
+          if (value is List) {
+            fieldErrors[key] = List<String>.from(value);
+          } else if (value is String) {
+            fieldErrors[key] = [value];
+          }
+        }
+      });
+    }
+
+    return AuthErrorModel(
+      fieldErrors: fieldErrors,
+      statusCode: statusCode,
+      rawResponse: responseData is String ? responseData : jsonEncode(responseData),
+    );
+  }
+
+  // Отримання першої помилки для відображення
+  String getFirstError() {
+    if (fieldErrors.isEmpty) return 'Unknown error occurred';
+    
+    final firstField = fieldErrors.keys.first;
+    final firstError = fieldErrors[firstField]?.first ?? 'Error';
+    
+    return '$firstField: $firstError';
+  }
+
+  // Отримання всіх помилок для відображення
+  String getAllErrors() {
+    if (fieldErrors.isEmpty) return 'Unknown error occurred';
+    
+    return fieldErrors.entries
+        .map((e) => '${e.key}: ${e.value.join(', ')}')
+        .join('\n');
+  }
+}
+```
+
+### 2. ApiException в error_handler.dart
+Розширений для обробки структурованих помилок автентифікації:
+
+```dart
+factory ApiException.fromDioError(DioException error) {
+  // ...
+  case 400:
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      // Create a structured error model for API errors
+      final authError = AuthErrorModel.fromResponse(data, statusCode: statusCode);
+      
+      if (authError.fieldErrors.isNotEmpty) {
+        // Set first error as message for backward compatibility
+        message = authError.getFirstError();
+        return ApiException(
+          message: message, 
+          statusCode: statusCode,
+          authError: authError
+        );
+      } else {
+        message = 'Bad request';
+      }
+    }
+  // ...
+}
+```
+
+### 3. AuthFailure в auth_state.dart
+Зберігає структуровані помилки для відображення в UI:
+
+```dart
+class AuthFailure extends AuthState {
+  final String error;
+  final AuthErrorModel? apiError;
+
+  const AuthFailure(this.error, {this.apiError});
+
+  factory AuthFailure.fromError(dynamic error) {
+    if (error is AuthErrorModel) {
+      return AuthFailure(
+        error.getFirstError(),
+        apiError: error,
+      );
+    } else if (error is ApiException && error.authError != null) {
+      return AuthFailure(
+        error.message,
+        apiError: error.authError,
+      );
+    }
+    return AuthFailure(error.toString());
+  }
+
+  bool get hasFieldErrors => apiError != null && apiError!.fieldErrors.isNotEmpty;
+  String get allErrors => apiError?.getAllErrors() ?? error;
+  Map<String, List<String>> get fieldErrors => apiError?.fieldErrors ?? {};
+}
+```
+
+### 4. Відображення помилок в auth_screen.dart
+```dart
+// ...
+if (state is AuthFailure) {
+  // Clear any previous SnackBars
+  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  
+  if (state.hasFieldErrors) {
+    // Update form fields with API errors
+    final Map<String, List<String>> fieldErrors = state.fieldErrors;
+    
+    // Handle email-specific errors
+    if (fieldErrors.containsKey('email')) {
+      _emailController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _emailController.text.length),
+      );
+    }
+    
+    // Display full error message in SnackBar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(state.allErrors),
+        backgroundColor: Colors.red[700],
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Закрити',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  } else {
+    // Show simple error for non-field errors
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(state.error),
+        backgroundColor: Colors.red[700],
+      ),
+    );
+  }
+}
+```
+
+## Приклад роботи функціоналу
+
+### Сценарій 1: Реєстрація з існуючим email
+1. Користувач намагається зареєструватися, використовуючи email, який вже існує в системі
+2. Сервер повертає помилку з кодом 400:
+   ```json
+   {
+     "email": ["user model with this email already exists."],
+     "_query_stats": {"number_of_queries": 1, "total_query_time": "0.00 ms", "elapsed_time": "0.02 ms"}
+   }
+   ```
+3. ApiClient передає цю помилку в ApiException.fromDioError
+4. Створюється AuthErrorModel з цими даними
+5. AuthBloc отримує ApiException і створює стан AuthFailure з цими даними
+6. UI відображає помилку у SnackBar: "email: user model with this email already exists."
+
+### Сценарій 2: Невалідні дані при вході
+1. Користувач вводить неправильний пароль
+2. Сервер повертає помилку з кодом 400:
+   ```json
+   {
+     "non_field_errors": ["Unable to log in with provided credentials."]
+   }
+   ```
+3. Обробка аналогічна попередньому сценарію
+4. UI відображає помилку: "non_field_errors: Unable to log in with provided credentials."
+
+## Вирішення проблем
+Якщо фіча перестала працювати, перевірте:
+
+1. Ланцюжок обробки помилок: ApiClient → ApiException → AuthErrorModel → AuthFailure
+2. Переконайтеся, що в ApiException.fromDioError коректно обробляються дані відповіді від сервера
+3. Перевірте, що AuthBloc правильно передає помилки в стан AuthFailure
+4. Перевірте, що AuthFailure.fromError правильно обробляє різні типи помилок (AuthErrorModel та ApiException)
+5. Перевірте відображення помилок в auth_screen.dart
