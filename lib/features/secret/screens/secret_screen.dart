@@ -26,6 +26,7 @@ class SecretScreen extends StatefulWidget {
 class _SecretScreenState extends State<SecretScreen> {
   final ApiConfigService _apiConfigService = ApiConfigService();
   final TextEditingController _baseUrlController = TextEditingController();
+  final TextEditingController _fleetIdController = TextEditingController(); // Контролер для поля ID автопарка
   UrlOption _selectedOption = UrlOption.ourPublic; // За замовчуванням публічний URL
   UsageScenario _selectedScenario = UsageScenario.allFleets; // За замовчуванням всі автопарки
   bool _isLoading = false;
@@ -41,12 +42,22 @@ class _SecretScreenState extends State<SecretScreen> {
   void initState() {
     super.initState();
     _loadSavedUrl();
+    _loadFleetId(); // Завантажуємо збережений ID автопарка
   }
 
   @override
   void dispose() {
     _baseUrlController.dispose();
+    _fleetIdController.dispose(); // Звільняємо ресурси контролера
     super.dispose();
+  }
+
+  // Завантажити збережений ID автопарка
+  Future<void> _loadFleetId() async {
+    final fleetId = await _apiConfigService.getFleetId();
+    setState(() {
+      _fleetIdController.text = fleetId.toString();
+    });
   }
 
   // Завантажити збережений URL при ініціалізації
@@ -97,6 +108,9 @@ class _SecretScreenState extends State<SecretScreen> {
       await _apiConfigService.saveUrlOption(_selectedOption.toString());
       // Зберігаємо вибраний сценарій використання
       await _apiConfigService.saveUsageScenario(_selectedScenario.toString());
+      // Зберігаємо ID автопарка
+      final fleetId = int.tryParse(_fleetIdController.text) ?? 10;
+      await _apiConfigService.setFleetId(fleetId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -226,6 +240,24 @@ class _SecretScreenState extends State<SecretScreen> {
               ),
               _buildScenarioTile(UsageScenario.allFleets, 'Всі автопарки'),
               _buildScenarioTile(UsageScenario.singleFleet, 'Один автопарк'),
+
+              const SizedBox(height: 24),
+              
+              // Поле для ID автопарка
+              const Text(
+                'ID автопарка:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _fleetIdController,
+                decoration: const InputDecoration(
+                  labelText: 'ID автопарка',
+                  hintText: '10',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number, // Тільки цифрова клавіатура
+              ),
 
               const SizedBox(height: 24),
 

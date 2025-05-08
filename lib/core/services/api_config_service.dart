@@ -8,6 +8,7 @@ class ApiConfigService {
   static const String _publicUrl = 'http://rentsoft-env-1.eba-xkfjndpj.us-east-1.elasticbeanstalk.com/api/api/';
   static const String _usageScenarioKey = 'usage_scenario'; // Ключ для сценарію використання
   static const String _accessTokenKey = 'access_token'; // Ключ для токена доступу
+  static const String _fleetIdKey = 'fleet_id'; // Ключ для ID автопарка
 
   // Сервіс-сінглтон
   static final ApiConfigService _instance = ApiConfigService._internal();
@@ -90,5 +91,17 @@ class ApiConfigService {
   Future<void> setToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_accessTokenKey, token);
+  }
+  
+  // Отримати ID автопарка
+  Future<int> getFleetId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_fleetIdKey) ?? 10; // За замовчуванням 10
+  }
+  
+  // Зберегти ID автопарка
+  Future<void> setFleetId(int fleetId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_fleetIdKey, fleetId);
   }
 }
