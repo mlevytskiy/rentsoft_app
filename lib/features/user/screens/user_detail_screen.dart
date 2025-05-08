@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rentsoft_app/features/auth/screens/response_view_screen.dart';
+import 'package:rentsoft_app/features/car/services/car_service.dart';
 import 'package:rentsoft_app/features/user/data/car_database.dart';
 import 'package:rentsoft_app/features/user/models/car_model.dart';
 import 'package:rentsoft_app/features/user/models/user_with_ads_count.dart';
@@ -17,6 +18,7 @@ class UserDetailScreen extends StatefulWidget {
 
 class _UserDetailScreenState extends State<UserDetailScreen> {
   final UserRepository _userRepository = UserRepository();
+  final CarService _carService = CarService(); // Додано CarService
   CarModel? _generatedCar;
   bool _isLoading = false;
   bool _isCreatingAd = false;
@@ -73,14 +75,20 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     }
   }
   
-  void _viewUserAdvertisements() {
+  void _viewUserAdvertisements() async {
+    // Встановлюємо ID користувача для перегляду його оголошень
+    await _carService.setSelectedUserId(widget.user.id);
+    
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => UserAdvertisementsScreen(
           user: widget.user,
         ),
       ),
-    );
+    ).then((_) {
+      // Очищаємо вибраний ID користувача при поверненні
+      _carService.clearSelectedUserId();
+    });
   }
 
   @override

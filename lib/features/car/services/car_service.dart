@@ -3,6 +3,7 @@ import '../repositories/advertisement_repository.dart';
 import '../repositories/i_car_repository.dart';
 import '../repositories/mock_car_repository.dart';
 import '../../../core/services/api_config_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class CarService {
   // Singleton pattern
@@ -11,12 +12,16 @@ class CarService {
   CarService._internal() {
     _initializeRepository();
   }
+  
+  // ID користувача, оголошення якого переглядає адміністратор
+  int? _selectedUserId;
 
   // Track booked cars locally
   final List<String> _bookedCarIds = [];
   
   // Сервіс конфігурації API
   final ApiConfigService _apiConfigService = ApiConfigService();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   
   // Repository for car data
   late ICarRepository _carRepository;
@@ -36,9 +41,28 @@ class CarService {
       _syncBookedCarsWithMockRepository();
     } else {
       print('CarService: Using AdvertisementRepository with API');
+      
+      // Перевіряємо, чи є користувач адміном
+      final isAdmin = await _isUserAdmin();
+      
       // Отримуємо ID автопарку з ApiConfigService
-      final fleetId = await _apiConfigService.getFleetId();
-      print('CarService: Using fleetId: $fleetId');
+      int fleetId;
+      
+      if (isAdmin) {
+        if (_selectedUserId != null) {
+          // Якщо адмін вибрав конкретного користувача
+          fleetId = _selectedUserId!;
+          print('CarService: Admin viewing fleetId for user: $fleetId');
+        } else {
+          // За замовчуванням для адміна використовуємо ID = 1
+          fleetId = 1;
+          print('CarService: Admin user detected, using default admin fleetId: $fleetId');
+        }
+      } else {
+        // Для звичайних користувачів використовуємо збережений fleetId
+        fleetId = await _apiConfigService.getFleetId();
+        print('CarService: Regular user, using fleetId: $fleetId');
+      }
       
       // Використовуємо AdvertisementRepository з ID автопарку
       _carRepository = AdvertisementRepository(fleetId: fleetId.toString());
@@ -58,6 +82,28 @@ class CarService {
     }
   }
 
+  // Перевіряємо, чи є користувач адміністратором
+  Future<bool> _isUserAdmin() async {
+    final isAdmin = await _secureStorage.read(key: 'is_admin');
+    return isAdmin == 'true';
+  }
+  
+  // Встановлює ID користувача для перегляду адміністратором
+  Future<void> setSelectedUserId(int userId) async {
+    _selectedUserId = userId;
+    print('CarService: Admin selected user ID: $userId');
+    // Скидаємо кеш та реініціалізуємо репозиторій з новим ID
+    _cachedCars = null;
+    await _initializeRepository();
+  }
+  
+  // Очищає вибраний ID користувача
+  void clearSelectedUserId() {
+    _selectedUserId = null;
+    print('CarService: Admin cleared selected user ID');
+    _cachedCars = null;
+  }
+  
   // Перевіряємо і оновлюємо репозиторій перед кожною дією
   Future<void> _ensureCorrectRepository() async {
     final isCurrentlyOffline = await _apiConfigService.isOfflineMode();

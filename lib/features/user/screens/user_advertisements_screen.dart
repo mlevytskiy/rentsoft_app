@@ -36,13 +36,51 @@ class _UserAdvertisementsScreenState extends State<UserAdvertisementsScreen> {
       if (response['status_code'] == 200) {
         setState(() {
           // Перевіряємо формат відповіді, оскільки він може відрізнятися
-          if (response['data'] is List) {
-            _advertisements = response['data'];
-          } else if (response['data'] is Map && response['data'].containsKey('results')) {
-            _advertisements = response['data']['results'] as List;
+          print('DEBUG: UserAdvertisementsScreen - Структура відповіді: ${response.keys.toString()}');
+          
+          if (response.containsKey('data')) {
+            var data = response['data'];
+            print('DEBUG: UserAdvertisementsScreen - Тип data: ${data.runtimeType}');
+            
+            // API повертає структуру з полем data, яке містить масив оголошень
+            
+            // Надрукуємо детальну інформацію про структуру
+            if (data is Map) {
+              print('DEBUG: Ключі в data: ${data.keys.toString()}');
+            }
+            
+            if (data is List) {
+              // Прямий масив даних
+              _advertisements = data;
+              print('DEBUG: Використовуємо data як List');
+            } else if (data is Map && data.containsKey('results')) {
+              // Об'єкт з полем results, яке містить масив
+              _advertisements = data['results'] as List;
+              print('DEBUG: Використовуємо data["results"]');
+            } else if (data is Map && data.containsKey('data')) {
+              // Структура з вкладеним полем data для вкладених даних
+              _advertisements = data['data'] as List;
+              print('DEBUG: Використовуємо data["data"]');
+            } else if (data is Map) {
+              // Прямий доступ до поля JSON відповіді для нового API
+              if (data.containsKey('total_items') && data.containsKey('total_pages')) {
+                // Це відповідь від нового API з пагінацією
+                print('DEBUG: Виявлено структуру з пагінацією, total_items: ${data['total_items']}');
+                _advertisements = data['data'] as List;
+              } else {
+                // Загальний випадок: просто використовуємо об'єкт як масив
+                _advertisements = [data];
+                print('DEBUG: Використовуємо data як одиночний об\'u0454кт');
+              }
+            } else {
+              _advertisements = [];
+              print('DEBUG: Не вдалося розпізнати формат даних');
+            }
           } else {
             _advertisements = [];
           }
+          
+          print('DEBUG: UserAdvertisementsScreen - Кількість оголошень: ${_advertisements.length}');
           _isLoading = false;
         });
       } else {
