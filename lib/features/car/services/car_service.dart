@@ -116,7 +116,7 @@ class CarService {
     }
   }
 
-  // Book a car
+  // Book a car (стара реалізація)
   Future<void> bookCar(String carId) async {
     await _ensureCorrectRepository();
     
@@ -128,6 +128,33 @@ class CarService {
         _cachedCars = null;
       } catch (e) {
         print('Error booking car in service: $e');
+        // If API call fails, remove from local bookings
+        _bookedCarIds.remove(carId);
+        rethrow;
+      }
+    }
+  }
+  
+  // Book a car with dates - використовує новий ендпоінт /booking
+  Future<void> bookCarWithDates(String carId, DateTime dateFrom, DateTime dateTo) async {
+    await _ensureCorrectRepository();
+    
+    if (!_bookedCarIds.contains(carId)) {
+      _bookedCarIds.add(carId);
+      try {
+        // Якщо це AdvertisementRepository, використовуємо новий метод з датами
+        if (_carRepository is AdvertisementRepository) {
+          final adRepository = _carRepository as AdvertisementRepository;
+          await adRepository.bookCarWithDates(carId, dateFrom, dateTo);
+        } else {
+          // Для інших репозиторіїв використовуємо стандартний метод
+          await _carRepository.bookCar(carId);
+        }
+        
+        // Invalidate cache after booking
+        _cachedCars = null;
+      } catch (e) {
+        print('Error booking car with dates: $e');
         // If API call fails, remove from local bookings
         _bookedCarIds.remove(carId);
         rethrow;

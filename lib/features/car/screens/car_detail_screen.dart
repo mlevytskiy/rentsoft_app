@@ -587,35 +587,105 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return '$day $month, $time';
   }
 
-  void _showDateTimePicker() {
-    // Show date picker, followed by time picker
-    // This is a placeholder for actual implementation
-    showDialog(
+  void _showDateTimePicker() async {
+    // Показуємо спочатку picker для дати початку оренди
+    final DateTime? pickedStartDate = await showDatePicker(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Період оренди'),
-        content: const Text('Тут буде відображено вибір дат і часу'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      initialDate: startDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Виберіть дату початку оренди',
     );
+    
+    if (pickedStartDate != null) {
+      // Якщо вибрали дату початку, показуємо picker для часу початку
+      final TimeOfDay? pickedStartTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(startDate ?? DateTime.now()),
+        helpText: 'Виберіть час початку оренди',
+      );
+      
+      if (pickedStartTime != null) {
+        // Зберігаємо повну дату і час початку
+        final newStartDate = DateTime(
+          pickedStartDate.year,
+          pickedStartDate.month,
+          pickedStartDate.day,
+          pickedStartTime.hour,
+          pickedStartTime.minute,
+        );
+        
+        // Тепер показуємо picker для дати закінчення оренди
+        final DateTime? pickedEndDate = await showDatePicker(
+          context: context,
+          initialDate: endDate ?? pickedStartDate.add(const Duration(days: 7)),
+          firstDate: pickedStartDate,
+          lastDate: pickedStartDate.add(const Duration(days: 365)),
+          helpText: 'Виберіть дату закінчення оренди',
+        );
+        
+        if (pickedEndDate != null) {
+          // Якщо вибрали дату закінчення, показуємо picker для часу закінчення
+          final TimeOfDay? pickedEndTime = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(endDate ?? DateTime.now().add(const Duration(days: 7))),
+            helpText: 'Виберіть час закінчення оренди',
+          );
+          
+          if (pickedEndTime != null) {
+            // Зберігаємо повну дату і час закінчення
+            final newEndDate = DateTime(
+              pickedEndDate.year,
+              pickedEndDate.month,
+              pickedEndDate.day,
+              pickedEndTime.hour,
+              pickedEndTime.minute,
+            );
+            
+            // Оновлюємо стан з новими датами
+            setState(() {
+              startDate = newStartDate;
+              endDate = newEndDate;
+            });
+          }
+        }
+      }
+    }
   }
 
-  void _bookCar() {
+  void _bookCar() async {
+    // Перевіряємо, чи вибрано дати
+    if (startDate == null || endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Будь ласка, виберіть період оренди'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
+    // Перевіряємо, чи дата кінця пізніше дати початку
+    if (endDate!.isBefore(startDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Дата закінчення має бути пізніше дати початку'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final carService = CarService();
 
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate network request
-    Future.delayed(const Duration(seconds: 1), () {
-      carService.bookCar(widget.car.id);
-
+    try {
+      // Використовуємо новий метод з датами для бронювання
+      await carService.bookCarWithDates(widget.car.id, startDate!, endDate!);
+      
       setState(() {
         _isLoading = false;
         _isBooked = true;
@@ -623,7 +693,21 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
 
       // Show confirmation dialog
       _showBookingConfirmationDialog();
-    });
+      
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // Показуємо повідомлення про помилку
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Помилка при бронюванні: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _cancelBooking() {
