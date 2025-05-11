@@ -178,6 +178,26 @@ class CarService {
       }
     }
   }
+  
+  // Reject a booking by its ID
+  Future<void> rejectBooking(String bookingId) async {
+    await _ensureCorrectRepository();
+    
+    try {
+      print('DEBUG: CarService - Rejecting booking with ID: $bookingId');
+      
+      // Use the new rejectBooking method from the repository
+      await _carRepository.rejectBooking(bookingId);
+      
+      // Invalidate cache after rejecting the booking
+      _cachedCars = null;
+      
+      print('DEBUG: CarService - Booking successfully rejected');
+    } catch (e) {
+      print('ERROR: Failed to reject booking in service: $e');
+      rethrow;
+    }
+  }
 
   // Check if a car is booked
   bool isCarBooked(String carId) {
@@ -233,6 +253,22 @@ class CarService {
   // Manually clear cache to force refresh
   void clearCache() {
     _cachedCars = null;
+  }
+  
+  // Очищення всіх даних користувача при виході з системи
+  void clearUserData() {
+    print('DEBUG: CarService - clearing all user data');
+    // Очищення списку заброньованих автомобілів
+    _bookedCarIds.clear();
+    
+    // Скидання ID вибраного користувача (для адміністраторів)
+    _selectedUserId = null;
+    
+    // Очищення кешу автомобілів
+    _cachedCars = null;
+    
+    // Також можна скинути інші налаштування або стани, якщо потрібно
+    print('DEBUG: CarService - all user data cleared');
   }
 
   // Filter cars by search query

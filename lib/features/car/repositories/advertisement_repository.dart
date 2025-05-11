@@ -120,6 +120,20 @@ class AdvertisementRepository implements ICarRepository {
       throw ApiException(message: 'Не вдалося скасувати бронювання');
     }
   }
+  
+  @override
+  Future<void> rejectBooking(String bookingId) async {
+    try {
+      print('DEBUG: Відхилення бронювання з ID: $bookingId');
+      
+      // Використовуємо новий ендпоінт DELETE /booking/{id} для відхилення бронювання
+      await _apiClient.delete('/bookings/$bookingId');
+      print('DEBUG: Бронювання успішно відхилено');
+    } catch (e) {
+      print('DEBUG: Помилка при відхиленні бронювання: $e');
+      throw ApiException(message: 'Не вдалося відхилити бронювання');
+    }
+  }
 
   // Map JSON response to Car model
   Car _mapToCar(Map<String, dynamic> data) {

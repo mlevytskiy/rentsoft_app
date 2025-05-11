@@ -710,22 +710,60 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     }
   }
 
-  void _cancelBooking() {
+  void _cancelBooking() async {
     final carService = CarService();
 
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate network request
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      // Використовуємо новий метод rejectBooking з DELETE /bookings/{id} ендпоінтом
+      // Для демонстрації припускаємо, що ID бронювання це ID автомобіля (в реальному додатку це мав би бути ID бронювання)
+      String bookingId = widget.car.id;
+      print('DEBUG: Відхиляємо бронювання з ID: $bookingId');
+      
+      await carService.rejectBooking(bookingId);
+      
+      // Також оновлюємо локальний стан carService
       carService.unbookCar(widget.car.id);
-
+      
+      // Важливо: очищуємо кеш для оновлення списків автомобілів
+      carService.clearCache();
+      
       setState(() {
         _isLoading = false;
         _isBooked = false;
       });
-    });
+      
+      // Показуємо повідомлення про успішне відхилення
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Бронювання успішно відхилено'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Повертаємось на попередній екран із індикатором про необхідність оновлення
+      Navigator.of(context).pop({
+        'refreshMyCars': true,   // Вказуємо, що потрібно оновити вкладку "Мої авто"
+        'refreshSearchCars': true  // Вказуємо, що потрібно оновити вкладку "Пошук авто"
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // Показуємо повідомлення про помилку
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Помилка при відхиленні бронювання: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _showBookingConfirmationDialog() {

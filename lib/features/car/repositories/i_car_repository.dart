@@ -5,4 +5,7 @@ abstract class ICarRepository {
   Future<Car?> getCarById(String id);
   Future<void> bookCar(String carId);
   Future<void> unbookCar(String carId);
+  
+  /// Відхилити/скасувати бронювання за його ID
+  Future<void> rejectBooking(String bookingId);
 }

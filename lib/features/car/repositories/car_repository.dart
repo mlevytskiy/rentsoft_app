@@ -62,6 +62,18 @@ class CarRepository implements ICarRepository {
     }
   }
   
+  @override
+  Future<void> rejectBooking(String bookingId) async {
+    try {
+      print('DEBUG: Rejecting booking with ID $bookingId');
+      await _apiClient.delete('/bookings/$bookingId');
+      print('DEBUG: Booking successfully rejected');
+    } catch (e) {
+      print('Error rejecting booking: $e');
+      throw Exception('Failed to reject booking');
+    }
+  }
+  
   // Map JSON response to Car model
   Car _mapToCar(Map<String, dynamic> data) {
     return Car(

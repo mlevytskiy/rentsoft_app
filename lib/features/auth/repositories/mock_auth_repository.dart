@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../core/services/logout_service.dart';
 import '../models/user_model.dart';
 import 'i_auth_repository.dart';
 
@@ -91,11 +92,11 @@ class MockAuthRepository implements IAuthRepository {
   Future<void> logout() async {
     // Add a small delay for logout as well
     await Future.delayed(const Duration(milliseconds: 500));
-
-    // Видаляємо всі збережені дані користувача
-    await _secureStorage.delete(key: 'access_token');
-    await _secureStorage.delete(key: 'user_data');
-    await _secureStorage.delete(key: 'is_admin');
+    
+    // Використовуємо централізований LogoutService для очищення всіх даних користувача
+    final logoutService = LogoutService();
+    await logoutService.clearAllUserData();
+    print('DEBUG: MockAuthRepository - logout completed');
   }
 
   // Check if user is logged in

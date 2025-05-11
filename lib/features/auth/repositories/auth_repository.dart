@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/services/error_handler.dart';
+import '../../../core/services/logout_service.dart';
 import '../models/user_model.dart';
 import 'i_auth_repository.dart';
 import 'dart:convert';
@@ -107,7 +108,10 @@ class AuthRepository implements IAuthRepository {
 
   @override
   Future<void> logout() async {
-    await _secureStorage.deleteAll();
+    // Використовуємо централізований LogoutService замість лише видалення з SecureStorage
+    final logoutService = LogoutService();
+    await logoutService.clearAllUserData();
+    print('DEBUG: AuthRepository - logout completed');
   }
 
   @override

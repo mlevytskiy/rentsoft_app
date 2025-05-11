@@ -10,14 +10,20 @@ import '../services/car_service.dart';
 import 'car_detail_screen.dart';
 
 
+// Factory method to create unique keys for CarSearchScreen
+GlobalKey<CarSearchScreenState> createCarSearchScreenKey() {
+  return GlobalKey<CarSearchScreenState>();
+}
+
 class CarSearchScreen extends StatefulWidget {
   const CarSearchScreen({super.key});
 
   @override
-  State<CarSearchScreen> createState() => _CarSearchScreenState();
+  State<CarSearchScreen> createState() => CarSearchScreenState();
 }
 
-class _CarSearchScreenState extends State<CarSearchScreen> {
+// Make class public to access via key
+class CarSearchScreenState extends State<CarSearchScreen> {
   final _searchController = TextEditingController();
   final _carService = CarService();
   final _scenarioService = getIt<ScenarioService>();
@@ -77,6 +83,11 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
     super.initState();
     _checkAuthStatus();
     _loadFleetMode();
+  }
+  
+  // Публічний метод для перезавантаження даних екрану
+  void reloadCars() {
+    _checkAuthStatus();
   }
   
   // Перевіряємо статус авторизації користувача

@@ -38,6 +38,13 @@ class MockCarRepository implements ICarRepository {
     _bookedCarIds.remove(carId);
   }
   
+  @override
+  Future<void> rejectBooking(String bookingId) async {
+    // In mock implementation, we just log the action
+    print('Mock: Rejecting booking with ID: $bookingId');
+    // In a real implementation, this would make an API call to delete the booking
+  }
+  
   // Додаємо метод для отримання заброньованих автомобілів
   List<String> get bookedCarIds => List.from(_bookedCarIds);
   
