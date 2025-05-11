@@ -5,7 +5,7 @@ class ApiConfigService {
   static const String _urlOptionKey = 'url_option'; // Ключ для опції URL
   static const String _withoutInternetValue = 'no-internet';
   static const String _localhostUrl = 'http://localhost:8888/';
-  static const String _publicUrl = 'http://rentsoft-env-1.eba-xkfjndpj.us-east-1.elasticbeanstalk.com/api/api/';
+  static const String _publicUrl = 'http://rentsoft-env-1.eba-xkfjndpj.us-east-1.elasticbeanstalk.com/api/';
   static const String _usageScenarioKey = 'usage_scenario'; // Ключ для сценарію використання
   static const String _accessTokenKey = 'access_token'; // Ключ для токена доступу
   static const String _fleetIdKey = 'fleet_id'; // Ключ для ID автопарка
@@ -28,7 +28,7 @@ class ApiConfigService {
     final baseUrl = prefs.getString(_baseUrlKey);
 
     // Якщо URL ще не було збережено, використовувати режим "Without internet" за замовчуванням
-    _cachedBaseUrl = baseUrl ?? _withoutInternetValue;
+    _cachedBaseUrl = baseUrl ?? _publicUrl;
     return _cachedBaseUrl!;
   }
 
@@ -80,25 +80,25 @@ class ApiConfigService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_usageScenarioKey);
   }
-  
+
   // Отримати збережений токен доступу
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_accessTokenKey);
   }
-  
+
   // Зберегти токен доступу
   Future<void> setToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_accessTokenKey, token);
   }
-  
+
   // Отримати ID автопарка
   Future<int> getFleetId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_fleetIdKey) ?? 10; // За замовчуванням 10
+    return prefs.getInt(_fleetIdKey) ?? 1; // За замовчуванням 10
   }
-  
+
   // Зберегти ID автопарка
   Future<void> setFleetId(int fleetId) async {
     final prefs = await SharedPreferences.getInstance();
